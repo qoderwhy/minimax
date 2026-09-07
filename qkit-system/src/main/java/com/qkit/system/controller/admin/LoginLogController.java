@@ -35,6 +35,7 @@ public class LoginLogController {
 
     @Operation(summary = "删除登录日志")
     @DeleteMapping("/delete")
+    @SaCheckPermission("system:login-log:delete")
     @OperLog(module = "登录日志", name = "删除登录日志")
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return loginLogService.delete(ids);

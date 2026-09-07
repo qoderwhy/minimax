@@ -69,7 +69,7 @@ onMounted(fetch)
   <div class="page">
     <el-card>
       <div class="toolbar">
-        <el-button type="primary" v-permission="'system:dept:save'" @click="onAdd(true)">新增根部门</el-button>
+        <el-button type="primary" v-permission="'system:dept:create'" @click="onAdd(true)">新增根部门</el-button>
       </div>
       <el-table v-loading="loading" :data="list" row-key="id" :tree-props="{ children: 'children' }" default-expand-all border>
         <el-table-column prop="label" label="部门名称" />
@@ -84,7 +84,7 @@ onMounted(fetch)
         </el-table-column>
         <el-table-column label="操作" width="260">
           <template #default="{ row }">
-            <el-button v-permission="'system:dept:save'" type="primary" link @click="onAddChild(row as DeptItem)">新增下级</el-button>
+            <el-button v-permission="'system:dept:create'" type="primary" link @click="onAddChild(row as DeptItem)">新增下级</el-button>
             <el-button v-permission="'system:dept:update'" type="primary" link @click="onEdit(row as DeptItem)">编辑</el-button>
             <el-button v-permission="'system:dept:delete'" type="danger" link @click="onDelete(row as DeptItem)">删除</el-button>
           </template>

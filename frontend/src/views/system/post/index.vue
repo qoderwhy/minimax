@@ -73,7 +73,7 @@ onMounted(fetch)
 
     <el-card>
       <div class="toolbar">
-        <el-button type="primary" v-permission="'system:post:save'" @click="onAdd">新增岗位</el-button>
+        <el-button type="primary" v-permission="'system:post:create'" @click="onAdd">新增岗位</el-button>
       </div>
       <el-table v-loading="loading" :data="list" border>
         <el-table-column type="index" label="#" width="50" />

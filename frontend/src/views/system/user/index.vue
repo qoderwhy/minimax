@@ -139,7 +139,7 @@ onMounted(() => {
 
     <el-card>
       <div class="toolbar">
-        <el-button type="primary" v-permission="'system:user:save'" @click="onAdd">新增用户</el-button>
+        <el-button type="primary" v-permission="'system:user:create'" @click="onAdd">新增用户</el-button>
       </div>
       <el-table v-loading="loading" :data="list" border>
         <el-table-column type="index" label="#" width="50" />
@@ -157,7 +157,7 @@ onMounted(() => {
         <el-table-column label="操作" width="240">
           <template #default="{ row }">
             <el-button v-permission="'system:user:update'" type="primary" link @click="onEdit(row as UserItem)">编辑</el-button>
-            <el-button v-permission="'system:user:reset-pwd'" type="warning" link @click="onResetPwd(row as UserItem)">重置密码</el-button>
+            <el-button v-permission="'system:user:reset-password'" type="warning" link @click="onResetPwd(row as UserItem)">重置密码</el-button>
             <el-button v-permission="'system:user:delete'" type="danger" link @click="onDelete(row as UserItem)">删除</el-button>
           </template>
         </el-table-column>

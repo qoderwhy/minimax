@@ -75,7 +75,7 @@ onMounted(fetch)
   <div class="page">
     <el-card>
       <div class="toolbar">
-        <el-button type="primary" v-permission="'system:menu:save'" @click="onAdd">新增根菜单</el-button>
+        <el-button type="primary" v-permission="'system:menu:create'" @click="onAdd">新增根菜单</el-button>
       </div>
       <el-table v-loading="loading" :data="list" row-key="id" :tree-props="{ children: 'children' }" default-expand-all border>
         <el-table-column prop="name" label="菜单名称" />
@@ -89,7 +89,7 @@ onMounted(fetch)
         <el-table-column prop="sort" label="排序" width="70" />
         <el-table-column label="操作" width="240">
           <template #default="{ row }">
-            <el-button v-permission="'system:menu:save'" type="primary" link @click="onAddChild(row as MenuItem)">新增</el-button>
+            <el-button v-permission="'system:menu:create'" type="primary" link @click="onAddChild(row as MenuItem)">新增</el-button>
             <el-button v-permission="'system:menu:update'" type="primary" link @click="onEdit(row as MenuItem)">编辑</el-button>
             <el-button v-permission="'system:menu:delete'" type="danger" link @click="onDelete(row as MenuItem)">删除</el-button>
           </template>

@@ -152,7 +152,7 @@ onMounted(fetchTypes)
         <template #header>
           <div class="card-header">
             <span>字典类型</span>
-            <el-button v-permission="'system:dict:save'" type="primary" size="small" @click="onTypeAdd">新增</el-button>
+            <el-button v-permission="'system:dict:create'" type="primary" size="small" @click="onTypeAdd">新增</el-button>
           </div>
         </template>
         <el-form :model="typeQuery" inline class="type-search">
@@ -202,7 +202,7 @@ onMounted(fetchTypes)
         <template #header>
           <div class="card-header">
             <span>字典数据{{ selectedType ? `：${selectedType.name} (${selectedType.type})` : '' }}</span>
-            <el-button v-permission="'system:dict:save'" type="primary" size="small" @click="onItemAdd">新增字典项</el-button>
+            <el-button v-permission="'system:dict:create'" type="primary" size="small" @click="onItemAdd">新增字典项</el-button>
           </div>
         </template>
         <el-form :model="itemQuery" inline class="item-search">

@@ -69,12 +69,16 @@ INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, so
 -- ---------- 系统管理 → 操作日志 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
 (160, '操作日志', 'C', 1, '/system/oper-log', 'system/oper-log/index', 'system:oper-log:page', 'Document', 7, 0, 0, 1, NOW()),
-(161, '日志查询', 'F', 160, NULL, NULL, 'system:oper-log:page', NULL, 1, 0, 0, 1, NOW());
+(161, '日志查询', 'F', 160, NULL, NULL, 'system:oper-log:page',   NULL, 1, 0, 0, 1, NOW()),
+(162, '删除日志', 'F', 160, NULL, NULL, 'system:oper-log:delete', NULL, 2, 0, 0, 1, NOW()),
+(163, '清空日志', 'F', 160, NULL, NULL, 'system:oper-log:clean',  NULL, 3, 0, 0, 1, NOW());
 
 -- ---------- 系统管理 → 登录日志 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
 (170, '登录日志', 'C', 1, '/system/login-log', 'system/login-log/index', 'system:login-log:page', 'Lock', 8, 0, 0, 1, NOW()),
-(171, '日志查询', 'F', 170, NULL, NULL, 'system:login-log:page', NULL, 1, 0, 0, 1, NOW());
+(171, '日志查询', 'F', 170, NULL, NULL, 'system:login-log:page',   NULL, 1, 0, 0, 1, NOW()),
+(172, '删除日志', 'F', 170, NULL, NULL, 'system:login-log:delete', NULL, 2, 0, 0, 1, NOW()),
+(173, '清空日志', 'F', 170, NULL, NULL, 'system:login-log:clean',  NULL, 3, 0, 0, 1, NOW());
 
 -- ---------- 角色 ----------
 INSERT INTO sys_role (id, name, code, data_scope, sort, status, create_by, create_time) VALUES

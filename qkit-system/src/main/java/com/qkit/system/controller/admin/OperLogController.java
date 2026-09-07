@@ -35,6 +35,7 @@ public class OperLogController {
 
     @Operation(summary = "删除操作日志")
     @DeleteMapping("/delete")
+    @SaCheckPermission("system:oper-log:delete")
     @OperLog(module = "操作日志", name = "删除操作日志")
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return operLogService.delete(ids);
