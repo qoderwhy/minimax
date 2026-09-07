@@ -1,0 +1,19 @@
+FROM eclipse-temurin:17-jdk-jammy AS builder
+WORKDIR /workspace
+
+# 先拷贝 POM 以利用 Docker 缓存
+COPY pom.xml qkit-common/pom.xml qkit-framework/pom.xml qkit-system/pom.xml qkit-admin/pom.xml ./
+COPY qkit-common qkit-common
+COPY qkit-framework qkit-framework
+COPY qkit-system qkit-system
+COPY qkit-admin qkit-admin
+RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/* \
+    && mvn -B -DskipTests clean package
+
+# 运行时镜像
+FROM eclipse-temurin:17-jre-jammy
+WORKDIR /app
+COPY --from=builder /workspace/qkit-admin/target/qkit-admin-*.jar app.jar
+EXPOSE 8080
+ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC"
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

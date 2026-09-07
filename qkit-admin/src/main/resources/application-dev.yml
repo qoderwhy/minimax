@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/qkit?useSSL=false&useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      password:
+  flyway:
+    enabled: false
+
+sa-token:
+  token-name: satoken
+  timeout: 86400
+  active-timeout: 1800
+  is-concurrent: true
+  is-share: false
+  token-style: uuid
+  is-read-cookie: false
+  is-read-header: true
+
+logging:
+  level:
+    com.qkit: debug
+    org.springframework: warn
+  file:
+    name: logs/qkit.log

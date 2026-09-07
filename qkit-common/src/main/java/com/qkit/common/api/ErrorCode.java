@@ -1,0 +1,56 @@
+package com.qkit.common.api;
+
+/**
+ * 错误码枚举。集中维护所有业务错误码，避免散落。
+ */
+public enum ErrorCode {
+
+    SUCCESS(200, "成功"),
+
+    BAD_REQUEST(400, "请求参数错误"),
+    UNAUTHORIZED(401, "未登录或登录已过期"),
+    FORBIDDEN(403, "无权限访问"),
+    NOT_FOUND(404, "资源不存在"),
+    METHOD_NOT_ALLOWED(405, "请求方法不允许"),
+    INTERNAL_ERROR(500, "系统异常，请联系管理员"),
+
+    USER_NOT_FOUND(10001, "用户不存在"),
+    USER_PASSWORD_ERROR(10002, "用户名或密码错误"),
+    USER_DISABLED(10003, "用户已被停用"),
+    USER_LOCKED(10004, "账号已锁定，请稍后再试"),
+    USER_EXISTS(10005, "用户名已存在"),
+    USERNAME_OR_PASSWORD_ERROR(10006, "用户名或密码错误"),
+
+    CAPTCHA_INVALID(10101, "验证码错误或已过期"),
+    CAPTCHA_REQUIRED(10102, "请输入验证码"),
+
+    ROLE_NOT_FOUND(11001, "角色不存在"),
+    ROLE_IN_USE(11002, "角色已分配用户，无法删除"),
+
+    MENU_HAS_CHILDREN(12001, "存在子菜单，无法删除"),
+    DEPT_HAS_CHILDREN(13001, "存在子部门，无法删除"),
+    DEPT_HAS_USER(13002, "部门下存在用户，无法删除"),
+
+    DICT_HAS_ITEMS(14001, "字典下存在字典项，无法删除"),
+
+    POST_IN_USE(15001, "岗位已分配用户，无法删除"),
+
+    VALIDATION_FAILED(422, "参数校验失败"),
+    TOO_MANY_REQUESTS(429, "请求过于频繁，请稍后再试");
+
+    private final Integer code;
+    private final String message;
+
+    ErrorCode(Integer code, String message) {
+        this.code = code;
+        this.message = message;
+    }
+
+    public Integer getCode() {
+        return code;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+}
