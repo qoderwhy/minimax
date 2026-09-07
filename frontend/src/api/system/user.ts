@@ -74,3 +74,7 @@ export function updateUserStatus(id: string, status: number) {
     data: { id, status }
   })
 }
+
+export function exportUser(params: UserQuery) {
+  return request.download<Blob>({ url: '/admin-api/system/user/export', params })
+}

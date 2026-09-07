@@ -3,6 +3,7 @@ package com.qkit.system.service.impl;
 import cn.dev33.satoken.secure.BCrypt;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qkit.common.api.ErrorCode;
@@ -16,19 +17,23 @@ import com.qkit.system.domain.dto.UserQueryDTO;
 import com.qkit.system.domain.entity.Dept;
 import com.qkit.system.domain.entity.Post;
 import com.qkit.system.domain.entity.User;
+import com.qkit.system.domain.vo.UserExportVO;
 import com.qkit.system.domain.vo.UserVO;
 import com.qkit.system.mapper.DeptMapper;
 import com.qkit.system.mapper.PostMapper;
 import com.qkit.system.mapper.UserMapper;
 import com.qkit.system.service.UserRoleService;
 import com.qkit.system.service.UserService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -58,6 +63,40 @@ public class UserServiceImpl implements UserService {
         Page<User> result = userMapper.selectPage(page, wrapper);
         List<UserVO> voList = result.getRecords().stream().map(this::toVOWithExtra).toList();
         return R.ok(voList, result.getTotal(), query.pageNum(), query.pageSize());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void export(UserQueryDTO query, HttpServletResponse response) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
+                .like(StrUtil.isNotBlank(query.username()), User::getUsername, query.username())
+                .like(StrUtil.isNotBlank(query.phone()), User::getPhone, query.phone())
+                .eq(query.status() != null, User::getStatus, query.status())
+                .eq(query.deptId() != null, User::getDeptId, query.deptId())
+                .orderByDesc(User::getId);
+        List<User> users = userMapper.selectList(wrapper);
+        List<UserExportVO> exportList = new ArrayList<>(users.size());
+        for (User user : users) {
+            UserVO vo = toVOWithExtra(user);
+            exportList.add(UserExportVO.builder()
+                    .username(vo.username())
+                    .nickname(vo.nickname())
+                    .realName(vo.realName())
+                    .phone(vo.phone())
+                    .email(vo.email())
+                    .deptName(vo.deptName())
+                    .postName(vo.postName())
+                    .statusLabel(vo.statusLabel())
+                    .createTime(vo.createTime())
+                    .build());
+        }
+        try {
+            EasyExcel.write(response.getOutputStream(), UserExportVO.class)
+                    .sheet("用户列表")
+                    .doWrite(exportList);
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.EXPORT_ERROR);
+        }
     }
 
     @Override

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
-import { pageUser, saveUser, deleteUser, resetUserPassword, updateUserStatus, type UserItem, type UserQuery, type UserSave } from '@/api/system/user'
+import { pageUser, saveUser, deleteUser, resetUserPassword, updateUserStatus, exportUser, type UserItem, type UserQuery, type UserSave } from '@/api/system/user'
 import { listRole, type RoleItem } from '@/api/system/role'
 import { listDept, type DeptItem } from '@/api/system/dept'
 import { listPost, type PostItem } from '@/api/system/post'
@@ -111,6 +111,30 @@ async function onStatusChange(row: UserItem) {
   ElMessage.success('状态已更新')
 }
 
+async function onExport() {
+  const resp = await exportUser(query)
+  const blob = new Blob([resp.data], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  })
+  const fileName = getFileName(resp) || '用户列表.xlsx'
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  link.click()
+  window.URL.revokeObjectURL(url)
+  ElMessage.success('导出成功')
+}
+
+function getFileName(resp: any): string | null {
+  const disposition = resp?.headers?.['content-disposition'] as string | undefined
+  if (!disposition) return null
+  const utf8 = disposition.match(/filename\*=utf-8''([^;]+)/i)
+  if (utf8) return decodeURIComponent(utf8[1])
+  const name = disposition.match(/filename="?([^";]+)"?/i)
+  return name ? decodeURIComponent(name[1]) : null
+}
+
 onMounted(() => {
   loadOptions()
   fetch()
@@ -140,6 +164,7 @@ onMounted(() => {
     <el-card>
       <div class="toolbar">
         <el-button type="primary" v-permission="'system:user:create'" @click="onAdd">新增用户</el-button>
+        <el-button type="success" v-permission="'system:user:export'" @click="onExport">导出</el-button>
       </div>
       <el-table v-loading="loading" :data="list" border>
         <el-table-column type="index" label="#" width="50" />

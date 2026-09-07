@@ -35,6 +35,8 @@ public enum ErrorCode {
 
     POST_IN_USE(15001, "岗位已分配用户，无法删除"),
 
+    EXPORT_ERROR(16001, "导出失败，请稍后重试"),
+
     VALIDATION_FAILED(422, "参数校验失败"),
     TOO_MANY_REQUESTS(429, "请求过于频繁，请稍后再试");
 

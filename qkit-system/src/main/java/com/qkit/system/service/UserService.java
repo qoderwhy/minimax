@@ -7,12 +7,16 @@ import com.qkit.system.domain.dto.UserSaveDTO;
 import com.qkit.system.domain.dto.UserQueryDTO;
 import com.qkit.system.domain.vo.LoginUserVO;
 import com.qkit.system.domain.vo.UserVO;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.List;
 
 public interface UserService {
 
     R<List<UserVO>> page(UserQueryDTO query);
+
+    /** 按查询条件导出用户列表（EasyExcel 写入响应流） */
+    void export(UserQueryDTO query, HttpServletResponse response);
 
     R<UserVO> detail(Long id);
 

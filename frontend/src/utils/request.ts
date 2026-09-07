@@ -1,6 +1,7 @@
 import axios, {
   type AxiosInstance,
   type AxiosRequestConfig,
+  type AxiosResponse,
   type InternalAxiosRequestConfig
 } from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -109,12 +110,23 @@ async function requestPage<T>(config: AxiosRequestConfig): Promise<{ list: T[]; 
   return { list: (r.data as T[]) ?? [], total: r.total ?? 0 }
 }
 
+/**
+ * 文件下载请求：用于导出等场景，返回完整 axios response（含 .data 的 blob）。
+ * 通过 responseType: 'blob' 让响应拦截器将文件流原样返回。
+ */
+function requestDownload<T = Blob>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  return request({ ...config, responseType: 'blob' }) as Promise<AxiosResponse<T>>
+}
+
 export default {
   get<T = any>(config: AxiosRequestConfig): Promise<T> {
     return requestData<T>({ ...config, method: 'get' })
   },
   page<T = any>(config: AxiosRequestConfig): Promise<{ list: T[]; total: number }> {
     return requestPage<T>({ ...config, method: 'get' })
+  },
+  download<T = Blob>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return requestDownload<T>({ ...config, method: 'get' })
   },
   post<T = any>(config: AxiosRequestConfig): Promise<T> {
     return requestData<T>({ ...config, method: 'post' })

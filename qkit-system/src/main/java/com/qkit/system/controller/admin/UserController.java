@@ -14,11 +14,15 @@ import com.qkit.system.domain.vo.UserVO;
 import com.qkit.system.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Tag(name = "用户管理")
@@ -86,6 +90,18 @@ public class UserController {
     @OperLog(module = "用户管理", name = "分配角色")
     public R<Boolean> assignRole(@RequestParam Long userId, @RequestBody List<Long> roleIds) {
         return userService.assignRole(userId, roleIds);
+    }
+
+    @Operation(summary = "导出用户")
+    @GetMapping("/export")
+    @SaCheckPermission("system:user:export")
+    @OperLog(module = "用户管理", name = "导出用户")
+    public void export(UserQueryDTO query, HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        String fileName = URLEncoder.encode("用户列表", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+        userService.export(query, response);
     }
 
     // ==================== 个人中心（本人） ====================
