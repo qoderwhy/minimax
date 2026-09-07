@@ -22,5 +22,3 @@ sa-token:
 logging:
   level:
     com.qkit: info
-  file:
-    name: /var/log/qkit/app.log

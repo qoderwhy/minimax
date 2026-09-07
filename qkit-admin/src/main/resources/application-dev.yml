@@ -27,5 +27,3 @@ logging:
   level:
     com.qkit: debug
     org.springframework: warn
-  file:
-    name: logs/qkit.log
