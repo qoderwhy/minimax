@@ -24,18 +24,12 @@ export const staticRoutes: RouteRecordRaw[] = [
         name: 'Dashboard',
         component: () => import('@/views/dashboard/index.vue'),
         meta: { title: '首页', icon: 'House', affix: true }
-      },
-      {
-        path: 'system/dict/items',
-        name: 'DictItems',
-        component: () => import('@/views/system/dict/items.vue'),
-        meta: { title: '数据项', hidden: true }
       }
     ]
   },
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/404',
+    component: () => import('@/views/error/404.vue'),
     meta: { hidden: true }
   }
 ]

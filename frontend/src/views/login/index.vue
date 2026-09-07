@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { getCaptcha, login } from '@/api/auth'
 import type { CaptchaVO } from '@/types/api'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 const formRef = ref<FormInstance>()
@@ -51,7 +52,8 @@ async function onSubmit() {
       captchaCode: form.value.captchaCode
     })
     ElMessage.success('登录成功')
-    router.push('/')
+    const redirect = route.query.redirect
+    router.replace(typeof redirect === 'string' && redirect.startsWith('/') ? redirect : '/')
   } catch (e: any) {
     refreshCaptcha()
   } finally {

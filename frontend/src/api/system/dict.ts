@@ -40,9 +40,28 @@ export function deleteDictType(id: string) {
   return request.delete<void>({ url: '/admin-api/system/dict/delete', data: [id] })
 }
 
-export async function pageDictItem(params: { pageNum?: number; pageSize?: number; type?: string; label?: string }) {
-  const items = await request.get<DictItem[]>({ url: '/admin-api/system/dict/items', params })
-  return { list: items, total: items.length }
+/** 字典项列表：后端 /items 返回指定类型全部字典项（非分页），前端由调用方自行分页 */
+export function pageDictItem(params: {
+  pageNum?: number
+  pageSize?: number
+  type?: string
+  label?: string
+}) {
+  const { type } = params
+  return request.get<DictItem[]>({ url: '/admin-api/system/dict/items', params: { type } }).then(
+    (list) => {
+      const filtered = labelFilter(list, params.label)
+      const pageNum = params.pageNum || 1
+      const pageSize = params.pageSize || 10
+      const start = (pageNum - 1) * pageSize
+      return { list: filtered.slice(start, start + pageSize), total: filtered.length }
+    }
+  )
+}
+
+function labelFilter(list: DictItem[], label?: string) {
+  if (!label) return list
+  return list.filter((i) => i.label.includes(label))
 }
 
 export function saveDictItem(data: DictItem) {
@@ -56,5 +75,5 @@ export function deleteDictItem(id: string) {
 }
 
 export function listDictItem(dictType: string) {
-  return request.get<DictItem[]>({ url: `/admin-api/system/dict/items?type=${dictType}` })
+  return request.get<DictItem[]>({ url: '/admin-api/system/dict/items', params: { type: dictType } })
 }

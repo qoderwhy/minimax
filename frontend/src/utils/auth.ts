@@ -1,14 +1,18 @@
-/** Token 存取工具 */
+/**
+ * Token 存取工具。
+ * 后端 Sa-Token 通过 satoken 请求头校验，前端统一在 request 拦截器注入。
+ * 使用 localStorage 存储，页面刷新不丢失登录态。
+ */
 const TOKEN_KEY = 'qkit_token'
 
 export function getToken(): string {
-  return sessionStorage.getItem(TOKEN_KEY) || ''
+  return localStorage.getItem(TOKEN_KEY) || ''
 }
 
 export function setToken(token: string): void {
-  sessionStorage.setItem(TOKEN_KEY, token)
+  localStorage.setItem(TOKEN_KEY, token)
 }
 
 export function removeToken(): void {
-  sessionStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(TOKEN_KEY)
 }

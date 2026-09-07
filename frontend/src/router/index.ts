@@ -28,7 +28,7 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
   if (!userStore.token) {
-    next(`/login?redirect=${to.fullPath}`)
+    next(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
     NProgress.done()
     return
   }
@@ -37,10 +37,10 @@ router.beforeEach(async (to, _from, next) => {
     try {
       const routes = await permStore.fetchRoutes()
       const dynamicRoutes = transformRoutes(routes as any)
-      dynamicRoutes.forEach((r) => router.addRoute(r))
       permStore.setRoutes(dynamicRoutes)
-      permStore.loadPerms()
-      next({ ...to, replace: true })
+      dynamicRoutes.forEach((r) => router.addRoute(r))
+      await permStore.loadPerms()
+      next({ path: to.path, query: to.query, hash: to.hash, replace: true })
     } catch (e) {
       userStore.logout()
       next('/login')

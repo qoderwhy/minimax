@@ -49,19 +49,28 @@ export function saveUser(data: UserSave) {
     : request.post<void>({ url: '/admin-api/system/user/create', data })
 }
 
+export function saveUserStatus(data: UserSave) {
+  return request.put<void>({ url: '/admin-api/system/user/update', data })
+}
+
 export function deleteUser(id: string) {
   return request.delete<void>({ url: '/admin-api/system/user/delete', data: [id] })
 }
 
+export function deleteUsers(ids: string[]) {
+  return request.delete<void>({ url: '/admin-api/system/user/delete', data: ids })
+}
+
 export function resetUserPassword(id: string, password: string) {
   return request.put<void>({
-    url: `/admin-api/system/user/reset-password?userId=${id}&newPassword=${password}`
+    url: '/admin-api/system/user/reset-password',
+    params: { userId: id, newPassword: password }
   })
 }
 
 export function updateUserStatus(id: string, status: number) {
   return request.put<void>({
-    url: `/admin-api/system/user/update?status=${status}`,
+    url: '/admin-api/system/user/update',
     data: { id, status }
   })
 }

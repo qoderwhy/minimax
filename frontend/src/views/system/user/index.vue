@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { pageUser, saveUser, deleteUser, resetUserPassword, updateUserStatus, type UserItem, type UserQuery, type UserSave } from '@/api/system/user'
 import { listRole, type RoleItem } from '@/api/system/role'
 import { listDept, type DeptItem } from '@/api/system/dept'
 import { listPost, type PostItem } from '@/api/system/post'
+import { required, mobile, email } from '@/utils/validate'
 
 const query = reactive<UserQuery>({ pageNum: 1, pageSize: 10, username: '', nickname: '', mobile: '', status: undefined, deptId: '' })
 const list = ref<UserItem[]>([])
@@ -19,6 +20,14 @@ const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
 const form = ref<UserSave>({ id: '', username: '', nickname: '', password: '', mobile: '', email: '', status: 1, deptId: '', roleIds: [], postIds: [] })
 const formRef = ref()
+
+const formRules = computed(() => ({
+  username: [required('请输入用户名')],
+  nickname: [required('请输入昵称')],
+  password: [...(dialogMode.value === 'add' ? [required('请输入密码')] : [])],
+  mobile: [mobile()],
+  email: [email()]
+}))
 
 async function fetch() {
   loading.value = true
@@ -166,7 +175,7 @@ onMounted(() => {
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="dialogMode === 'add' ? '新增用户' : '编辑用户'" width="600px">
-      <el-form ref="formRef" :model="form" label-width="100px">
+      <el-form ref="formRef" :model="form" :rules="formRules" label-width="100px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="form.username" :disabled="dialogMode === 'edit'" />
         </el-form-item>
