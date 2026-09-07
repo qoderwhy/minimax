@@ -6,6 +6,10 @@ import { useUserStore } from '@/stores/user'
 const router = useRouter()
 const userStore = useUserStore()
 
+function onProfile() {
+  router.push('/profile')
+}
+
 async function onLogout() {
   try {
     await ElMessageBox.confirm('确认退出登录？', '提示', { type: 'warning' })
@@ -28,7 +32,10 @@ async function onLogout() {
         </span>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item @click="onLogout">
+            <el-dropdown-item @click="onProfile">
+              <el-icon><User /></el-icon>个人中心
+            </el-dropdown-item>
+            <el-dropdown-item divided @click="onLogout">
               <el-icon><SwitchButton /></el-icon>退出登录
             </el-dropdown-item>
           </el-dropdown-menu>

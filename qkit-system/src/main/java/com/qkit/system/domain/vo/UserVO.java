@@ -27,6 +27,7 @@ public record UserVO(
         String loginIp,
         LocalDateTime loginDate,
         LocalDateTime createTime,
+        String remark,
         List<String> roleIds
 ) {
 }

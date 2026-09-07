@@ -10,6 +10,7 @@ import com.qkit.common.api.R;
 import com.qkit.common.exception.BusinessException;
 import com.qkit.system.convert.UserConvert;
 import com.qkit.system.domain.dto.PasswordDTO;
+import com.qkit.system.domain.dto.UserProfileUpdateDTO;
 import com.qkit.system.domain.dto.UserSaveDTO;
 import com.qkit.system.domain.dto.UserQueryDTO;
 import com.qkit.system.domain.entity.Dept;
@@ -71,7 +72,7 @@ public class UserServiceImpl implements UserService {
                 vo.email(), vo.phone(), vo.avatar(), vo.sex(), vo.sexLabel(),
                 vo.deptId(), vo.deptName(), vo.postId(), vo.postName(),
                 vo.status(), vo.statusLabel(), vo.loginIp(), vo.loginDate(),
-                vo.createTime(),
+                vo.createTime(), vo.remark(),
                 roleIds == null ? null : roleIds.stream().map(String::valueOf).toList()
         ));
     }
@@ -154,6 +155,30 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public R<UserVO> profile(Long userId) {
+        return detail(userId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public R<Boolean> updateProfile(Long userId, UserProfileUpdateDTO dto) {
+        User exist = userMapper.selectById(userId);
+        if (exist == null) throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        User update = new User();
+        update.setId(userId);
+        update.setNickname(dto.nickname());
+        update.setRealName(dto.realName());
+        update.setEmail(dto.email());
+        update.setPhone(dto.phone());
+        update.setAvatar(dto.avatar());
+        update.setSex(dto.sex());
+        update.setRemark(dto.remark());
+        userMapper.updateById(update);
+        return R.ok(true);
+    }
+
+    @Override
     public User getByUsername(String username) {
         return userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
     }
@@ -186,6 +211,6 @@ public class UserServiceImpl implements UserService {
                 vo.sex(), vo.sexLabel(),
                 vo.deptId(), deptName, vo.postId(), postName,
                 vo.status(), vo.statusLabel(),
-                vo.loginIp(), vo.loginDate(), vo.createTime(), null);
+                vo.loginIp(), vo.loginDate(), vo.createTime(), vo.remark(), null);
     }
 }

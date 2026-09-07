@@ -1,11 +1,13 @@
 package com.qkit.system.controller.admin;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import cn.dev33.satoken.stp.StpUtil;
 import com.qkit.common.api.R;
 import com.qkit.common.validation.group.SaveGroup;
 import com.qkit.common.validation.group.UpdateGroup;
 import com.qkit.framework.log.annotation.OperLog;
 import com.qkit.system.domain.dto.PasswordDTO;
+import com.qkit.system.domain.dto.UserProfileUpdateDTO;
 import com.qkit.system.domain.dto.UserQueryDTO;
 import com.qkit.system.domain.dto.UserSaveDTO;
 import com.qkit.system.domain.vo.UserVO;
@@ -86,9 +88,25 @@ public class UserController {
         return userService.assignRole(userId, roleIds);
     }
 
+    // ==================== 个人中心（本人） ====================
+
+    @Operation(summary = "个人资料详情")
+    @GetMapping("/profile")
+    public R<UserVO> profile() {
+        return userService.profile(StpUtil.getLoginIdAsLong());
+    }
+
+    @Operation(summary = "更新个人资料")
+    @PutMapping("/profile")
+    @OperLog(module = "个人中心", name = "更新个人资料")
+    public R<Boolean> updateProfile(@RequestBody @Valid UserProfileUpdateDTO dto) {
+        return userService.updateProfile(StpUtil.getLoginIdAsLong(), dto);
+    }
+
     @Operation(summary = "修改密码（本人）")
-    @PutMapping("/change-password")
-    public R<Boolean> changePassword(@RequestParam Long userId, @RequestBody @Valid PasswordDTO dto) {
-        return userService.changePassword(userId, dto);
+    @PutMapping("/profile/password")
+    @OperLog(module = "个人中心", name = "修改密码")
+    public R<Boolean> changePassword(@RequestBody @Valid PasswordDTO dto) {
+        return userService.changePassword(StpUtil.getLoginIdAsLong(), dto);
     }
 }
