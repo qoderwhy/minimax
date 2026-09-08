@@ -59,6 +59,7 @@ sys_dict_item (字典项)     N:1 sys_dict
 
 sys_oper_log (操作日志)    N:1 sys_user
 sys_login_log (登录日志)   N:1 sys_user (user_id 可空，登录失败时)
+sys_config (系统参数)      独立，无表间关系
 ```
 
 ## 3. 表清单
@@ -78,6 +79,7 @@ sys_login_log (登录日志)   N:1 sys_user (user_id 可空，登录失败时)
 | `sys_dict_item` | 字典项 | B |
 | `sys_oper_log` | 操作日志 | A |
 | `sys_login_log` | 登录日志 | A |
+| `sys_config` | 系统参数配置 | B |
 
 > 表前缀 `sys_` 表示"系统管理"，业务模块建议 `b_`（business）或 `<domain>_`，本期无。
 
@@ -275,6 +277,27 @@ sys_login_log (登录日志)   N:1 sys_user (user_id 可空，登录失败时)
 
 **索引**：`idx_username (username)`、`idx_login_time (login_time)`、`idx_status (status)`
 
+### 4.14 sys_config（系统参数配置）
+
+> 与字典表分工：`sys_config` 存系统运行参数，程序读取、影响行为；`sys_dict` 存业务枚举值，给人看/下拉选择。配置修改走权限校验 + 操作日志。
+
+| 字段 | 类型 | 必填 | 默认 | 说明 |
+|---|---|---|---|---|
+| id | BIGINT | ✓ | 雪花 | 主键 |
+| config_name | VARCHAR(100) | ✓ | — | 参数名称 |
+| config_key | VARCHAR(100) | ✓ | — | 参数键名（程序取值的 Key，唯一） |
+| config_value | VARCHAR(500) | | '' | 参数键值 |
+| config_type | CHAR(1) | ✓ | 'N' | 是否系统内置：Y=内置（不可删、不可改键名）N=自定义 |
+| remark | VARCHAR(500) | | '' | 备注 |
+| +公共列 | | | | create_by / create_time / update_by / update_time（**无 del_flag**，配置表物理删除） |
+
+**索引**：`uk_config_key (config_key)`
+
+**约定**：
+1. 取值走 `SysConfigService` 类型安全接口：`getValue(key[, default])` / `getInt(key, default)` / `getBoolean(key, default)`
+2. 缓存 + 热更新：应用启动时全量加载到 Redis（`sys_config:{key}` → 键值），管理后台增删改后刷新 Redis 缓存，不重启生效；多实例部署天然一致
+3. `config_type='Y'` 的内置参数：不可删除、不可修改键名；敏感值（密钥类）存库前加密、接口脱敏
+
 ## 5. 初始化数据（种子）
 
 ### 5.1 必要字典
@@ -465,6 +488,7 @@ INSERT INTO sys_dict_item (dict_type, label, value, sort, status, create_by, cre
 ```
 
 > 完整 DDL 在 `qkit-admin/src/main/resources/db/migration/V1.0.0__init.sql`，种子数据在 `V1.0.1__seed.sql`。
+> `sys_config` 表 DDL + 菜单（180~185）+ 参数种子在 `V1.0.2__sys_config.sql`。
 > admin 密码哈希为示例 hash，**生产部署必须**用 `BCrypt.hashpw('新密码', 10)` 重新生成后替换。
 
 ## 6. JSON vs 关系型权衡

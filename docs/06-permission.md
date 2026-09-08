@@ -407,6 +407,11 @@ public void onLoginSuccess(String username) {
 | `system:dict:delete` | 字典 | 删除 | `DictController.delete` | 「删除字典」按钮 |
 | `system:oper-log:page` | 操作日志 | 查询 | `OperLogController.page` | 操作日志列表 |
 | `system:login-log:page` | 登录日志 | 查询 | `LoginLogController.page` | 登录日志列表 |
+| `system:config:page` | 参数配置 | 分页查询 | `SysConfigController.page` | 参数配置列表 |
+| `system:config:list` | 参数配置 | 简单列表 | `SysConfigController.list` | 参数配置下拉 |
+| `system:config:create` | 参数配置 | 新增 | `SysConfigController.create` | 「新增参数」按钮 |
+| `system:config:update` | 参数配置 | 更新 | `SysConfigController.update` | 「编辑参数」按钮 |
+| `system:config:delete` | 参数配置 | 删除 | `SysConfigController.delete` | 「删除参数」按钮 |
 
 ### 10.2 新增权限码流程
 

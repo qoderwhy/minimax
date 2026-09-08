@@ -37,6 +37,9 @@ public enum ErrorCode {
 
     EXPORT_ERROR(16001, "导出失败，请稍后重试"),
 
+    CONFIG_KEY_EXISTS(17001, "参数键名已存在"),
+    CONFIG_BUILTIN(17002, "系统内置参数，不允许删除或修改键名"),
+
     VALIDATION_FAILED(422, "参数校验失败"),
     TOO_MANY_REQUESTS(429, "请求过于频繁，请稍后再试");
 

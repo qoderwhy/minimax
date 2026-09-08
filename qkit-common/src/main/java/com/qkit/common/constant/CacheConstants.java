@@ -20,6 +20,9 @@ public final class CacheConstants {
     /** 字典缓存：sys_dict:{type} → JSON 列表，TTL 永不过期 */
     public static final String DICT_KEY_PREFIX = "sys_dict:";
 
+    /** 系统参数缓存：sys_config:{configKey} → String configValue，增删改后刷新 */
+    public static final String CONFIG_KEY_PREFIX = "sys_config:";
+
     private CacheConstants() {
     }
 }
