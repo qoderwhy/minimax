@@ -44,6 +44,10 @@ const activeMenu = computed(() => route.path)
         <el-icon v-if="m.meta?.icon"><component :is="m.meta.icon" /></el-icon>
         <span>{{ m.children[0].meta?.title || m.meta?.title }}</span>
       </el-menu-item>
+      <el-menu-item v-else-if="!m.children || m.children.length === 0" :index="m.path">
+        <el-icon v-if="m.meta?.icon"><component :is="m.meta.icon" /></el-icon>
+        <span>{{ m.meta?.title }}</span>
+      </el-menu-item>
     </template>
   </el-menu>
 </template>

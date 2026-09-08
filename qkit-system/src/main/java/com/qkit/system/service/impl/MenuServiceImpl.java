@@ -57,12 +57,12 @@ public class MenuServiceImpl implements MenuService {
         List<Menu> menus;
         if (perms.contains("*:*:*") || roleCodes.contains("admin") || isAdmin(perms)) {
             menus = menuMapper.selectList(new LambdaQueryWrapper<Menu>()
-                    .eq(Menu::getStatus, 0)
+                    .eq(Menu::getStatus, 1)
                     .in(Menu::getType, "M", "C")
                     .orderByAsc(Menu::getSort));
         } else {
             menus = menuMapper.selectList(new LambdaQueryWrapper<Menu>()
-                    .eq(Menu::getStatus, 0)
+                    .eq(Menu::getStatus, 1)
                     .in(Menu::getType, "M", "C")
                     .in(Menu::getPerm, perms)
                     .orderByAsc(Menu::getSort));
@@ -77,7 +77,7 @@ public class MenuServiceImpl implements MenuService {
     public R<Long> create(MenuSaveDTO dto) {
         Menu menu = menuConvert.toEntity(dto);
         if (menu.getParentId() == null) menu.setParentId(0L);
-        if (menu.getStatus() == null) menu.setStatus(0);
+        if (menu.getStatus() == null) menu.setStatus(1);
         if (menu.getVisible() == null) menu.setVisible(0);
         menuMapper.insert(menu);
         return R.ok(menu.getId());

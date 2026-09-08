@@ -20,12 +20,12 @@ CREATE TABLE `sys_config` (
 
 -- ---------- 系统管理 → 参数设置 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
-(180, '参数设置', 'C', 1, '/system/config', 'system/config/index', 'system:config:page', 'Operation', 9, 0, 0, 1, NOW()),
-(181, '配置查询', 'F', 180, NULL, NULL, 'system:config:page',   NULL, 1, 0, 0, 1, NOW()),
-(182, '配置列表', 'F', 180, NULL, NULL, 'system:config:list',   NULL, 2, 0, 0, 1, NOW()),
-(183, '新增配置', 'F', 180, NULL, NULL, 'system:config:create', NULL, 3, 0, 0, 1, NOW()),
-(184, '编辑配置', 'F', 180, NULL, NULL, 'system:config:update', NULL, 4, 0, 0, 1, NOW()),
-(185, '删除配置', 'F', 180, NULL, NULL, 'system:config:delete', NULL, 5, 0, 0, 1, NOW());
+(180, '参数设置', 'C', 1, '/system/config', 'system/config/index', 'system:config:page', 'Operation', 9, 0, 1, 1, NOW()),
+(181, '配置查询', 'F', 180, NULL, NULL, 'system:config:page',   NULL, 1, 0, 1, 1, NOW()),
+(182, '配置列表', 'F', 180, NULL, NULL, 'system:config:list',   NULL, 2, 0, 1, 1, NOW()),
+(183, '新增配置', 'F', 180, NULL, NULL, 'system:config:create', NULL, 3, 0, 1, 1, NOW()),
+(184, '编辑配置', 'F', 180, NULL, NULL, 'system:config:update', NULL, 4, 0, 1, 1, NOW()),
+(185, '删除配置', 'F', 180, NULL, NULL, 'system:config:delete', NULL, 5, 0, 1, 1, NOW());
 
 -- admin 角色获得参数设置菜单权限
 INSERT INTO sys_role_menu (role_id, menu_id)

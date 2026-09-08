@@ -4,81 +4,81 @@
 
 -- ---------- 一级目录 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, icon, sort, visible, status, create_by, create_time) VALUES
-(1,  '系统管理', 'M', 0, '/system',   'Layout',          'Setting',   1, 0, 0, 1, NOW()),
-(2,  '系统监控', 'M', 0, '/monitor',  'Layout',          'Monitor',   2, 0, 0, 1, NOW()),
-(3,  '工具',     'M', 0, '/tool',     'Layout',          'Tools',     3, 0, 0, 1, NOW());
+(1,  '系统管理', 'M', 0, '/system',   'Layout',          'Setting',   1, 0, 1, 1, NOW()),
+(2,  '系统监控', 'M', 0, '/monitor',  'Layout',          'Monitor',   2, 0, 1, 1, NOW()),
+(3,  '工具',     'M', 0, '/tool',     'Layout',          'Tools',     3, 0, 1, 1, NOW());
 
 -- ---------- 系统管理 → 用户管理 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
-(100, '用户管理', 'C', 1, '/system/user', 'system/user/index', 'system:user:page', 'User', 1, 0, 0, 1, NOW()),
-(101, '用户查询', 'F', 100, NULL, NULL, 'system:user:page',           NULL, 1, 0, 0, 1, NOW()),
-(102, '用户列表', 'F', 100, NULL, NULL, 'system:user:list',           NULL, 2, 0, 0, 1, NOW()),
-(103, '用户详情', 'F', 100, NULL, NULL, 'system:user:detail',         NULL, 3, 0, 0, 1, NOW()),
-(104, '新增用户', 'F', 100, NULL, NULL, 'system:user:create',         NULL, 4, 0, 0, 1, NOW()),
-(105, '编辑用户', 'F', 100, NULL, NULL, 'system:user:update',         NULL, 5, 0, 0, 1, NOW()),
-(106, '删除用户', 'F', 100, NULL, NULL, 'system:user:delete',         NULL, 6, 0, 0, 1, NOW()),
-(107, '分配角色', 'F', 100, NULL, NULL, 'system:user:assign-role',    NULL, 7, 0, 0, 1, NOW()),
-(108, '重置密码', 'F', 100, NULL, NULL, 'system:user:reset-password', NULL, 8, 0, 0, 1, NOW()),
-(109, '导出用户', 'F', 100, NULL, NULL, 'system:user:export',         NULL, 9, 0, 0, 1, NOW());
+(100, '用户管理', 'C', 1, '/system/user', 'system/user/index', 'system:user:page', 'User', 1, 0, 1, 1, NOW()),
+(101, '用户查询', 'F', 100, NULL, NULL, 'system:user:page',           NULL, 1, 0, 1, 1, NOW()),
+(102, '用户列表', 'F', 100, NULL, NULL, 'system:user:list',           NULL, 2, 0, 1, 1, NOW()),
+(103, '用户详情', 'F', 100, NULL, NULL, 'system:user:detail',         NULL, 3, 0, 1, 1, NOW()),
+(104, '新增用户', 'F', 100, NULL, NULL, 'system:user:create',         NULL, 4, 0, 1, 1, NOW()),
+(105, '编辑用户', 'F', 100, NULL, NULL, 'system:user:update',         NULL, 5, 0, 1, 1, NOW()),
+(106, '删除用户', 'F', 100, NULL, NULL, 'system:user:delete',         NULL, 6, 0, 1, 1, NOW()),
+(107, '分配角色', 'F', 100, NULL, NULL, 'system:user:assign-role',    NULL, 7, 0, 1, 1, NOW()),
+(108, '重置密码', 'F', 100, NULL, NULL, 'system:user:reset-password', NULL, 8, 0, 1, 1, NOW()),
+(109, '导出用户', 'F', 100, NULL, NULL, 'system:user:export',         NULL, 9, 0, 1, 1, NOW());
 
 -- ---------- 系统管理 → 角色管理 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
-(110, '角色管理', 'C', 1, '/system/role', 'system/role/index', 'system:role:page', 'UserFilled', 2, 0, 0, 1, NOW()),
-(111, '角色分页', 'F', 110, NULL, NULL, 'system:role:page',         NULL, 1, 0, 0, 1, NOW()),
-(112, '角色列表', 'F', 110, NULL, NULL, 'system:role:list',         NULL, 2, 0, 0, 1, NOW()),
-(113, '新增角色', 'F', 110, NULL, NULL, 'system:role:create',       NULL, 3, 0, 0, 1, NOW()),
-(114, '编辑角色', 'F', 110, NULL, NULL, 'system:role:update',       NULL, 4, 0, 0, 1, NOW()),
-(115, '删除角色', 'F', 110, NULL, NULL, 'system:role:delete',       NULL, 5, 0, 0, 1, NOW()),
-(116, '分配菜单', 'F', 110, NULL, NULL, 'system:role:assign-menu',  NULL, 6, 0, 0, 1, NOW());
+(110, '角色管理', 'C', 1, '/system/role', 'system/role/index', 'system:role:page', 'UserFilled', 2, 0, 1, 1, NOW()),
+(111, '角色分页', 'F', 110, NULL, NULL, 'system:role:page',         NULL, 1, 0, 1, 1, NOW()),
+(112, '角色列表', 'F', 110, NULL, NULL, 'system:role:list',         NULL, 2, 0, 1, 1, NOW()),
+(113, '新增角色', 'F', 110, NULL, NULL, 'system:role:create',       NULL, 3, 0, 1, 1, NOW()),
+(114, '编辑角色', 'F', 110, NULL, NULL, 'system:role:update',       NULL, 4, 0, 1, 1, NOW()),
+(115, '删除角色', 'F', 110, NULL, NULL, 'system:role:delete',       NULL, 5, 0, 1, 1, NOW()),
+(116, '分配菜单', 'F', 110, NULL, NULL, 'system:role:assign-menu',  NULL, 6, 0, 1, 1, NOW());
 
 -- ---------- 系统管理 → 菜单管理 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
-(120, '菜单管理', 'C', 1, '/system/menu', 'system/menu/index', 'system:menu:tree', 'Menu', 3, 0, 0, 1, NOW()),
-(121, '菜单查询', 'F', 120, NULL, NULL, 'system:menu:tree',   NULL, 1, 0, 0, 1, NOW()),
-(122, '新增菜单', 'F', 120, NULL, NULL, 'system:menu:create', NULL, 2, 0, 0, 1, NOW()),
-(123, '编辑菜单', 'F', 120, NULL, NULL, 'system:menu:update', NULL, 3, 0, 0, 1, NOW()),
-(124, '删除菜单', 'F', 120, NULL, NULL, 'system:menu:delete', NULL, 4, 0, 0, 1, NOW());
+(120, '菜单管理', 'C', 1, '/system/menu', 'system/menu/index', 'system:menu:tree', 'Menu', 3, 0, 1, 1, NOW()),
+(121, '菜单查询', 'F', 120, NULL, NULL, 'system:menu:tree',   NULL, 1, 0, 1, 1, NOW()),
+(122, '新增菜单', 'F', 120, NULL, NULL, 'system:menu:create', NULL, 2, 0, 1, 1, NOW()),
+(123, '编辑菜单', 'F', 120, NULL, NULL, 'system:menu:update', NULL, 3, 0, 1, 1, NOW()),
+(124, '删除菜单', 'F', 120, NULL, NULL, 'system:menu:delete', NULL, 4, 0, 1, 1, NOW());
 
 -- ---------- 系统管理 → 部门管理 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
-(130, '部门管理', 'C', 1, '/system/dept', 'system/dept/index', 'system:dept:tree', 'OfficeBuilding', 4, 0, 0, 1, NOW()),
-(131, '部门查询', 'F', 130, NULL, NULL, 'system:dept:tree',        NULL, 1, 0, 0, 1, NOW()),
-(132, '部门下拉', 'F', 130, NULL, NULL, 'system:dept:simple-list', NULL, 2, 0, 0, 1, NOW()),
-(133, '新增部门', 'F', 130, NULL, NULL, 'system:dept:create',      NULL, 3, 0, 0, 1, NOW()),
-(134, '编辑部门', 'F', 130, NULL, NULL, 'system:dept:update',      NULL, 4, 0, 0, 1, NOW()),
-(135, '删除部门', 'F', 130, NULL, NULL, 'system:dept:delete',      NULL, 5, 0, 0, 1, NOW());
+(130, '部门管理', 'C', 1, '/system/dept', 'system/dept/index', 'system:dept:tree', 'OfficeBuilding', 4, 0, 1, 1, NOW()),
+(131, '部门查询', 'F', 130, NULL, NULL, 'system:dept:tree',        NULL, 1, 0, 1, 1, NOW()),
+(132, '部门下拉', 'F', 130, NULL, NULL, 'system:dept:simple-list', NULL, 2, 0, 1, 1, NOW()),
+(133, '新增部门', 'F', 130, NULL, NULL, 'system:dept:create',      NULL, 3, 0, 1, 1, NOW()),
+(134, '编辑部门', 'F', 130, NULL, NULL, 'system:dept:update',      NULL, 4, 0, 1, 1, NOW()),
+(135, '删除部门', 'F', 130, NULL, NULL, 'system:dept:delete',      NULL, 5, 0, 1, 1, NOW());
 
 -- ---------- 系统管理 → 岗位管理 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
-(140, '岗位管理', 'C', 1, '/system/post', 'system/post/index', 'system:post:page', 'Postcard', 5, 0, 0, 1, NOW()),
-(141, '岗位查询', 'F', 140, NULL, NULL, 'system:post:page',   NULL, 1, 0, 0, 1, NOW()),
-(142, '岗位下拉', 'F', 140, NULL, NULL, 'system:post:list',   NULL, 2, 0, 0, 1, NOW()),
-(143, '新增岗位', 'F', 140, NULL, NULL, 'system:post:create', NULL, 3, 0, 0, 1, NOW()),
-(144, '编辑岗位', 'F', 140, NULL, NULL, 'system:post:update', NULL, 4, 0, 0, 1, NOW()),
-(145, '删除岗位', 'F', 140, NULL, NULL, 'system:post:delete', NULL, 5, 0, 0, 1, NOW());
+(140, '岗位管理', 'C', 1, '/system/post', 'system/post/index', 'system:post:page', 'Postcard', 5, 0, 1, 1, NOW()),
+(141, '岗位查询', 'F', 140, NULL, NULL, 'system:post:page',   NULL, 1, 0, 1, 1, NOW()),
+(142, '岗位下拉', 'F', 140, NULL, NULL, 'system:post:list',   NULL, 2, 0, 1, 1, NOW()),
+(143, '新增岗位', 'F', 140, NULL, NULL, 'system:post:create', NULL, 3, 0, 1, 1, NOW()),
+(144, '编辑岗位', 'F', 140, NULL, NULL, 'system:post:update', NULL, 4, 0, 1, 1, NOW()),
+(145, '删除岗位', 'F', 140, NULL, NULL, 'system:post:delete', NULL, 5, 0, 1, 1, NOW());
 
 -- ---------- 系统管理 → 字典管理 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
-(150, '字典管理', 'C', 1, '/system/dict', 'system/dict/index', 'system:dict:page', 'Collection', 6, 0, 0, 1, NOW()),
-(151, '字典查询', 'F', 150, NULL, NULL, 'system:dict:page',   NULL, 1, 0, 0, 1, NOW()),
-(152, '字典下拉', 'F', 150, NULL, NULL, 'system:dict:list',   NULL, 2, 0, 0, 1, NOW()),
-(153, '新增字典', 'F', 150, NULL, NULL, 'system:dict:create', NULL, 3, 0, 0, 1, NOW()),
-(154, '编辑字典', 'F', 150, NULL, NULL, 'system:dict:update', NULL, 4, 0, 0, 1, NOW()),
-(155, '删除字典', 'F', 150, NULL, NULL, 'system:dict:delete', NULL, 5, 0, 0, 1, NOW());
+(150, '字典管理', 'C', 1, '/system/dict', 'system/dict/index', 'system:dict:page', 'Collection', 6, 0, 1, 1, NOW()),
+(151, '字典查询', 'F', 150, NULL, NULL, 'system:dict:page',   NULL, 1, 0, 1, 1, NOW()),
+(152, '字典下拉', 'F', 150, NULL, NULL, 'system:dict:list',   NULL, 2, 0, 1, 1, NOW()),
+(153, '新增字典', 'F', 150, NULL, NULL, 'system:dict:create', NULL, 3, 0, 1, 1, NOW()),
+(154, '编辑字典', 'F', 150, NULL, NULL, 'system:dict:update', NULL, 4, 0, 1, 1, NOW()),
+(155, '删除字典', 'F', 150, NULL, NULL, 'system:dict:delete', NULL, 5, 0, 1, 1, NOW());
 
 -- ---------- 系统管理 → 操作日志 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
-(160, '操作日志', 'C', 1, '/system/oper-log', 'system/oper-log/index', 'system:oper-log:page', 'Document', 7, 0, 0, 1, NOW()),
-(161, '日志查询', 'F', 160, NULL, NULL, 'system:oper-log:page',   NULL, 1, 0, 0, 1, NOW()),
-(162, '删除日志', 'F', 160, NULL, NULL, 'system:oper-log:delete', NULL, 2, 0, 0, 1, NOW()),
-(163, '清空日志', 'F', 160, NULL, NULL, 'system:oper-log:clean',  NULL, 3, 0, 0, 1, NOW());
+(160, '操作日志', 'C', 1, '/system/oper-log', 'system/oper-log/index', 'system:oper-log:page', 'Document', 7, 0, 1, 1, NOW()),
+(161, '日志查询', 'F', 160, NULL, NULL, 'system:oper-log:page',   NULL, 1, 0, 1, 1, NOW()),
+(162, '删除日志', 'F', 160, NULL, NULL, 'system:oper-log:delete', NULL, 2, 0, 1, 1, NOW()),
+(163, '清空日志', 'F', 160, NULL, NULL, 'system:oper-log:clean',  NULL, 3, 0, 1, 1, NOW());
 
 -- ---------- 系统管理 → 登录日志 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
-(170, '登录日志', 'C', 1, '/system/login-log', 'system/login-log/index', 'system:login-log:page', 'Lock', 8, 0, 0, 1, NOW()),
-(171, '日志查询', 'F', 170, NULL, NULL, 'system:login-log:page',   NULL, 1, 0, 0, 1, NOW()),
-(172, '删除日志', 'F', 170, NULL, NULL, 'system:login-log:delete', NULL, 2, 0, 0, 1, NOW()),
-(173, '清空日志', 'F', 170, NULL, NULL, 'system:login-log:clean',  NULL, 3, 0, 0, 1, NOW());
+(170, '登录日志', 'C', 1, '/system/login-log', 'system/login-log/index', 'system:login-log:page', 'Lock', 8, 0, 1, 1, NOW()),
+(171, '日志查询', 'F', 170, NULL, NULL, 'system:login-log:page',   NULL, 1, 0, 1, 1, NOW()),
+(172, '删除日志', 'F', 170, NULL, NULL, 'system:login-log:delete', NULL, 2, 0, 1, 1, NOW()),
+(173, '清空日志', 'F', 170, NULL, NULL, 'system:login-log:clean',  NULL, 3, 0, 1, 1, NOW());
 
 -- ---------- 角色 ----------
 INSERT INTO sys_role (id, name, code, data_scope, sort, status, create_by, create_time) VALUES

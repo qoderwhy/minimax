@@ -188,7 +188,7 @@ sys_config (系统参数)      独立，无表间关系
 | icon | VARCHAR(50) | 图标 |
 | sort | INT | 排序 |
 | visible | TINYINT | 是否显示 0=显示 1=隐藏 |
-| status | TINYINT | 0=正常 1=停用 |
+| status | TINYINT | 0=禁用 1=启用 |
 | +公共列 | | |
 
 **索引**：`idx_parent_id (parent_id)`、`idx_perm (perm)`

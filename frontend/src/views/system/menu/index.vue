@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, ref } from 'vue'
+import { onMounted, nextTick, ref } from 'vue'
 import { treeMenu, saveMenu, deleteMenu, type MenuItem, type MenuSave } from '@/api/system/menu'
 
 const list = ref<MenuItem[]>([])
 const loading = ref(false)
+const tableRef = ref()
+const expandAll = ref(false)
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<MenuSave>({ id: '', parentId: '0', name: '', type: 1, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 1, keepAlive: 0 })
+const form = ref<MenuSave>({ id: '', parentId: '0', name: '', type: 1, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 0, keepAlive: 0 })
 const formRef = ref()
 
 async function fetch() {
@@ -21,13 +23,13 @@ async function fetch() {
 
 function onAdd() {
   dialogMode.value = 'add'
-  form.value = { id: '', parentId: '0', name: '', type: 1, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 1, keepAlive: 0 }
+  form.value = { id: '', parentId: '0', name: '', type: 1, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 0, keepAlive: 0 }
   dialogVisible.value = true
 }
 
 function onAddChild(parent: MenuItem) {
   dialogMode.value = 'add'
-  form.value = { id: '', parentId: parent.id, name: '', type: 2, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 1, keepAlive: 0 }
+  form.value = { id: '', parentId: parent.id, name: '', type: 2, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 0, keepAlive: 0 }
   dialogVisible.value = true
 }
 
@@ -68,6 +70,21 @@ async function onDelete(row: MenuItem) {
 
 const typeLabel = (t: number) => ['', '目录', '菜单', '按钮'][t] || '-'
 
+function collectAllRows(rows: MenuItem[], out: MenuItem[] = []) {
+  for (const r of rows) {
+    out.push(r)
+    if (r.children?.length) collectAllRows(r.children, out)
+  }
+  return out
+}
+
+function onToggleExpand() {
+  expandAll.value = !expandAll.value
+  nextTick(() => {
+    collectAllRows(list.value).forEach((row) => tableRef.value?.toggleRowExpansion(row, expandAll.value))
+  })
+}
+
 onMounted(fetch)
 </script>
 
@@ -75,9 +92,13 @@ onMounted(fetch)
   <div class="page">
     <el-card>
       <div class="toolbar">
+        <el-button @click="onToggleExpand">
+          <el-icon style="margin-right: 4px"><component :is="expandAll ? 'Fold' : 'Expand'" /></el-icon>
+          {{ expandAll ? '全部收起' : '全部展开' }}
+        </el-button>
         <el-button type="primary" v-permission="'system:menu:create'" @click="onAdd">新增根菜单</el-button>
       </div>
-      <el-table v-loading="loading" :data="list" row-key="id" :tree-props="{ children: 'children' }" default-expand-all border>
+      <el-table ref="tableRef" v-loading="loading" :data="list" row-key="id" :tree-props="{ children: 'children' }" border>
         <el-table-column prop="name" label="菜单名称" />
         <el-table-column label="类型" width="80">
           <template #default="{ row }"><el-tag>{{ typeLabel(row.type) }}</el-tag></template>
@@ -110,15 +131,15 @@ onMounted(fetch)
           </el-radio-group>
         </el-form-item>
         <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item v-if="form.type !== 3" label="图标"><el-input v-model="form.icon" placeholder="如：User" /></el-form-item>
+        <el-form-item v-if="form.type !== 3" label="图标"><IconSelect v-model="form.icon" /></el-form-item>
         <el-form-item v-if="form.type !== 3" label="路由"><el-input v-model="form.path" placeholder="如：user" /></el-form-item>
         <el-form-item v-if="form.type === 2" label="组件"><el-input v-model="form.component" placeholder="如：system/user/index" /></el-form-item>
         <el-form-item label="权限标识"><el-input v-model="form.perm" placeholder="如：system:user:save" /></el-form-item>
         <el-form-item label="排序"><el-input-number v-model="form.sort" :min="0" /></el-form-item>
         <el-form-item v-if="form.type === 2" label="显示">
           <el-radio-group v-model="form.visible">
-            <el-radio :value="1">显示</el-radio>
-            <el-radio :value="0">隐藏</el-radio>
+            <el-radio :value="0">显示</el-radio>
+            <el-radio :value="1">隐藏</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item v-if="form.type === 2" label="缓存">

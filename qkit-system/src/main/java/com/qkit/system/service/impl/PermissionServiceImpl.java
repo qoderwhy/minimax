@@ -39,6 +39,12 @@ public class PermissionServiceImpl implements PermissionService {
         List<Long> roleIds = getRoleIds(userId);
         if (roleIds.isEmpty()) return Collections.emptyList();
 
+        // 超级管理员兜底：admin 角色直接授予全部权限，不依赖菜单数据
+        List<Role> roles = roleMapper.selectBatchIds(roleIds);
+        if (roles.stream().anyMatch(r -> "admin".equals(r.getCode()))) {
+            return List.of("*:*:*");
+        }
+
         // 通过角色 → 菜单 → 权限码
         Set<Long> menuIds = roleMenuMapper.selectList(
                 new LambdaQueryWrapper<RoleMenu>().in(RoleMenu::getRoleId, roleIds)
@@ -48,7 +54,7 @@ public class PermissionServiceImpl implements PermissionService {
         Set<String> perms = menuMapper.selectList(
                 new LambdaQueryWrapper<Menu>()
                         .in(Menu::getId, menuIds)
-                        .eq(Menu::getStatus, 0)
+                        .eq(Menu::getStatus, 1)
                         .isNotNull(Menu::getPerm)
                         .ne(Menu::getPerm, "")
         ).stream().map(Menu::getPerm).collect(Collectors.toSet());

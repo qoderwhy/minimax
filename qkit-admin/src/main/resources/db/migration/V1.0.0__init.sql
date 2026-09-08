@@ -112,7 +112,7 @@ CREATE TABLE `sys_menu` (
   `icon` VARCHAR(50) DEFAULT NULL COMMENT '图标',
   `sort` INT NOT NULL DEFAULT 0 COMMENT '排序',
   `visible` TINYINT NOT NULL DEFAULT 0 COMMENT '是否显示:0=显示 1=隐藏',
-  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '状态:0=正常 1=停用',
+  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '状态:0=禁用 1=启用',
   `create_by` BIGINT NOT NULL DEFAULT 0,
   `create_time` DATETIME DEFAULT NULL,
   `update_by` BIGINT NOT NULL DEFAULT 0,
