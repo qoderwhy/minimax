@@ -1,17 +1,15 @@
 package com.qkit.system.domain.vo;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 
 @Schema(description = "岗位 VO")
 public record PostVO(
-        @JsonSerialize(using = ToStringSerializer.class) Long id,
+        Long id,
         String code,
         String name,
-        @JsonSerialize(using = ToStringSerializer.class) Long deptId,
+        Long deptId,
         String deptName,
         Integer sort,
         Integer status,

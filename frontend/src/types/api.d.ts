@@ -11,12 +11,12 @@ export interface R<T = any> {
 
 /** 登录用户信息 */
 export interface LoginUserVO {
-  userId: string
+  userId: number
   username: string
   nickname: string
   realName: string
   avatar: string
-  deptId: string
+  deptId: number
   deptName?: string
   roles: string[]
   permissions: string[]
@@ -25,7 +25,7 @@ export interface LoginUserVO {
 /** 登录响应 */
 export interface LoginVO {
   token: string
-  userId: string
+  userId: number
   username: string
   nickname: string
 }
@@ -38,7 +38,7 @@ export interface CaptchaVO {
 
 /** 字典项 */
 export interface DictItemVO {
-  id: string
+  id: number
   dictType: string
   label: string
   value: string
@@ -49,7 +49,7 @@ export interface DictItemVO {
 
 /** 路由 */
 export interface RouteVO {
-  id: string
+  id: number
   name: string
   path: string
   component: string

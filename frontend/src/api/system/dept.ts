@@ -1,8 +1,8 @@
 import request from '@/utils/request'
 
 export interface DeptItem {
-  id: string
-  parentId: string
+  id: number
+  parentId: number
   label: string
   sort?: number
   leader?: string
@@ -13,9 +13,9 @@ export interface DeptItem {
 }
 
 export interface DeptSave {
-  id?: string
+  id?: number
   name: string
-  parentId: string
+  parentId: number
   sort: number
   leader?: string
   mobile?: string
@@ -37,6 +37,6 @@ export function saveDept(data: DeptSave) {
     : request.post<void>({ url: '/admin-api/system/dept/create', data })
 }
 
-export function deleteDept(id: string) {
+export function deleteDept(id: number) {
   return request.delete<void>({ url: '/admin-api/system/dept/delete', data: [id] })
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
-import { deleteConfig, pageConfig, saveConfig, type SysConfig } from '@/api/system/config'
+import { deleteConfig, pageConfig, saveConfig, type SysConfig, type SysConfigSave } from '@/api/system/config'
 
 const query = reactive({ pageNum: 1, pageSize: 10, configKey: '', configName: '' })
 const list = ref<SysConfig[]>([])
@@ -9,7 +9,7 @@ const total = ref(0)
 const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<SysConfig>({ id: '', configName: '', configKey: '', configValue: '', configType: 'N', remark: '' })
+const form = ref<SysConfigSave>({ id: undefined, configName: '', configKey: '', configValue: '', configType: 'N', remark: '' })
 const formRef = ref()
 
 async function fetchList() {
@@ -30,7 +30,7 @@ function onSearch() {
 
 function onAdd() {
   dialogMode.value = 'add'
-  form.value = { id: '', configName: '', configKey: '', configValue: '', configType: 'N', remark: '' }
+  form.value = { id: undefined, configName: '', configKey: '', configValue: '', configType: 'N', remark: '' }
   dialogVisible.value = true
 }
 

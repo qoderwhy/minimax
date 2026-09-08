@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
 export interface RoleItem {
-  id: string
+  id: number
   name: string
   code: string
   status: number
@@ -12,15 +12,15 @@ export interface RoleItem {
 }
 
 export interface RoleSave {
-  id?: string
+  id?: number
   name: string
   code: string
   status: number
   dataScope: number
   sort: number
   remark?: string
-  menuIds: string[]
-  deptIds?: string[]
+  menuIds: number[]
+  deptIds?: number[]
 }
 
 export interface RoleQuery {
@@ -39,7 +39,7 @@ export function listRole() {
   return request.get<RoleItem[]>({ url: '/admin-api/system/role/list' })
 }
 
-export function getRole(id: string) {
+export function getRole(id: number) {
   return request.get<RoleItem>({ url: `/admin-api/system/role/detail/${id}` })
 }
 
@@ -49,6 +49,6 @@ export function saveRole(data: RoleSave) {
     : request.post<void>({ url: '/admin-api/system/role/create', data })
 }
 
-export function deleteRole(id: string) {
+export function deleteRole(id: number) {
   return request.delete<void>({ url: '/admin-api/system/role/delete', data: [id] })
 }

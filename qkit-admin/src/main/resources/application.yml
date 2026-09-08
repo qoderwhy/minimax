@@ -3,7 +3,7 @@ spring:
     name: qkit
   profiles:
     active: dev
-  jackson:
+  Jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
     default-property-inclusion: non_null
@@ -26,7 +26,7 @@ mybatis-plus:
       logic-delete-field: delFlag
       logic-delete-value: 1
       logic-not-delete-value: 0
-      id-type: ASSIGN_ID
+      id-type: AUTO
 
 springdoc:
   api-docs:

@@ -7,7 +7,7 @@ const list = ref<DeptItem[]>([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit' | 'addChild'>('add')
-const form = ref<DeptSave>({ id: '', name: '', parentId: '0', sort: 0, leader: '', mobile: '', email: '', status: 1 })
+const form = ref<DeptSave>({ id: undefined, name: '', parentId: 0, sort: 0, leader: '', mobile: '', email: '', status: 1 })
 const formRef = ref()
 
 async function fetch() {
@@ -21,13 +21,13 @@ async function fetch() {
 
 function onAdd(root = true) {
   dialogMode.value = 'add'
-  form.value = { id: '', name: '', parentId: root ? '0' : '0', sort: 0, leader: '', mobile: '', email: '', status: 1 }
+  form.value = { id: undefined, name: '', parentId: 0, sort: 0, leader: '', mobile: '', email: '', status: 1 }
   dialogVisible.value = true
 }
 
 function onAddChild(parent: DeptItem) {
   dialogMode.value = 'addChild'
-  form.value = { id: '', name: '', parentId: parent.id, sort: 0, leader: '', mobile: '', email: '', status: 1 }
+  form.value = { id: undefined, name: '', parentId: parent.id, sort: 0, leader: '', mobile: '', email: '', status: 1 }
   dialogVisible.value = true
 }
 

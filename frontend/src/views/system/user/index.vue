@@ -7,7 +7,7 @@ import { listDept, type DeptItem } from '@/api/system/dept'
 import { listPost, type PostItem } from '@/api/system/post'
 import { required, mobile, email } from '@/utils/validate'
 
-const query = reactive<UserQuery>({ pageNum: 1, pageSize: 10, username: '', nickname: '', mobile: '', status: undefined, deptId: '' })
+const query = reactive<UserQuery>({ pageNum: 1, pageSize: 10, username: '', nickname: '', mobile: '', status: undefined, deptId: undefined })
 const list = ref<UserItem[]>([])
 const total = ref(0)
 const loading = ref(false)
@@ -18,7 +18,7 @@ const postList = ref<PostItem[]>([])
 
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<UserSave>({ id: '', username: '', nickname: '', password: '', mobile: '', email: '', status: 1, deptId: '', roleIds: [], postIds: [] })
+const form = ref<UserSave>({ id: undefined, username: '', nickname: '', password: '', mobile: '', email: '', status: 1, deptId: undefined, roleIds: [], postIds: [] })
 const formRef = ref()
 
 const formRules = computed(() => ({
@@ -50,7 +50,7 @@ function onReset() {
   query.nickname = ''
   query.mobile = ''
   query.status = undefined
-  query.deptId = ''
+  query.deptId = undefined
   query.pageNum = 1
   fetch()
 }
@@ -63,7 +63,7 @@ async function loadOptions() {
 
 function onAdd() {
   dialogMode.value = 'add'
-  form.value = { id: '', username: '', nickname: '', password: '', mobile: '', email: '', status: 1, deptId: '', roleIds: [], postIds: [] }
+  form.value = { id: undefined, username: '', nickname: '', password: '', mobile: '', email: '', status: 1, deptId: undefined, roleIds: [], postIds: [] }
   dialogVisible.value = true
 }
 
@@ -77,7 +77,7 @@ async function onEdit(row: UserItem) {
     mobile: row.mobile || '',
     email: row.email || '',
     status: row.status,
-    deptId: row.deptId || '',
+    deptId: row.deptId,
     roleIds: [],
     postIds: []
   }

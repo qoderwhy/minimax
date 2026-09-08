@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
 export interface PostItem {
-  id: string
+  id: number
   name: string
   code: string
   sort: number
@@ -10,7 +10,7 @@ export interface PostItem {
 }
 
 export interface PostSave {
-  id?: string
+  id?: number
   name: string
   code: string
   sort: number
@@ -30,6 +30,6 @@ export function savePost(data: PostSave) {
   return data.id ? request.put<void>({ url: '/admin-api/system/post', data }) : request.post<void>({ url: '/admin-api/system/post', data })
 }
 
-export function deletePost(id: string) {
+export function deletePost(id: number) {
   return request.delete<void>({ url: `/admin-api/system/post/${id}` })
 }

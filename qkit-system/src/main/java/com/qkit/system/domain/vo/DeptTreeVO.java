@@ -1,15 +1,13 @@
 package com.qkit.system.domain.vo;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
 @Schema(description = "部门树节点")
 public record DeptTreeVO(
-        @JsonSerialize(using = ToStringSerializer.class) Long id,
-        @JsonSerialize(using = ToStringSerializer.class) Long parentId,
+        Long id,
+        Long parentId,
         String label,
         String value,
         List<DeptTreeVO> children

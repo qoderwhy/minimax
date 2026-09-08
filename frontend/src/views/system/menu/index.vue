@@ -9,7 +9,7 @@ const tableRef = ref()
 const expandAll = ref(false)
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<MenuSave>({ id: '', parentId: '0', name: '', type: 1, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 0, keepAlive: 0 })
+const form = ref<MenuSave>({ id: undefined, parentId: 0, name: '', type: 1, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 0, keepAlive: 0 })
 const formRef = ref()
 
 async function fetch() {
@@ -23,13 +23,13 @@ async function fetch() {
 
 function onAdd() {
   dialogMode.value = 'add'
-  form.value = { id: '', parentId: '0', name: '', type: 1, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 0, keepAlive: 0 }
+  form.value = { id: undefined, parentId: 0, name: '', type: 1, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 0, keepAlive: 0 }
   dialogVisible.value = true
 }
 
 function onAddChild(parent: MenuItem) {
   dialogMode.value = 'add'
-  form.value = { id: '', parentId: parent.id, name: '', type: 2, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 0, keepAlive: 0 }
+  form.value = { id: undefined, parentId: parent.id, name: '', type: 2, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 0, keepAlive: 0 }
   dialogVisible.value = true
 }
 

@@ -4,7 +4,7 @@
 
 -- ---------- 用户 ----------
 CREATE TABLE `sys_user` (
-  `id` BIGINT NOT NULL COMMENT '主键',
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `username` VARCHAR(30) NOT NULL DEFAULT '' COMMENT '登录名',
   `password` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '密码(BCrypt)',
   `nickname` VARCHAR(30) NOT NULL DEFAULT '' COMMENT '昵称',
@@ -31,7 +31,7 @@ CREATE TABLE `sys_user` (
 
 -- ---------- 角色 ----------
 CREATE TABLE `sys_role` (
-  `id` BIGINT NOT NULL COMMENT '主键',
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `name` VARCHAR(30) NOT NULL DEFAULT '' COMMENT '角色名称',
   `code` VARCHAR(30) NOT NULL DEFAULT '' COMMENT '角色编码',
   `data_scope` TINYINT NOT NULL DEFAULT 1 COMMENT '数据权限:1=全部 2=本部门及下级 3=本部门 4=仅本人 5=自定义',
@@ -57,7 +57,7 @@ CREATE TABLE `sys_user_role` (
 
 -- ---------- 部门 ----------
 CREATE TABLE `sys_dept` (
-  `id` BIGINT NOT NULL COMMENT '主键',
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `name` VARCHAR(30) NOT NULL DEFAULT '' COMMENT '部门名称',
   `parent_id` BIGINT NOT NULL DEFAULT 0 COMMENT '上级部门ID',
   `sort` INT NOT NULL DEFAULT 0 COMMENT '排序',
@@ -76,7 +76,7 @@ CREATE TABLE `sys_dept` (
 
 -- ---------- 岗位 ----------
 CREATE TABLE `sys_post` (
-  `id` BIGINT NOT NULL COMMENT '主键',
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `code` VARCHAR(30) NOT NULL DEFAULT '' COMMENT '岗位编码',
   `name` VARCHAR(30) NOT NULL DEFAULT '' COMMENT '岗位名称',
   `dept_id` BIGINT NOT NULL DEFAULT 0 COMMENT '部门ID',
@@ -102,7 +102,7 @@ CREATE TABLE `sys_user_post` (
 
 -- ---------- 菜单 ----------
 CREATE TABLE `sys_menu` (
-  `id` BIGINT NOT NULL COMMENT '主键',
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `name` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '菜单名称',
   `type` CHAR(1) NOT NULL DEFAULT '' COMMENT '类型:M=目录 C=菜单 F=按钮',
   `parent_id` BIGINT NOT NULL DEFAULT 0 COMMENT '上级菜单',
@@ -140,7 +140,7 @@ CREATE TABLE `sys_role_dept` (
 
 -- ---------- 字典分类 ----------
 CREATE TABLE `sys_dict` (
-  `id` BIGINT NOT NULL COMMENT '主键',
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `name` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '字典名称',
   `type` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '字典类型',
   `status` TINYINT NOT NULL DEFAULT 0 COMMENT '状态',
@@ -175,7 +175,7 @@ CREATE TABLE `sys_dict_item` (
 
 -- ---------- 操作日志 ----------
 CREATE TABLE `sys_oper_log` (
-  `id` BIGINT NOT NULL COMMENT '主键',
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `module` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '模块名',
   `name` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '操作名',
   `user_id` BIGINT NOT NULL DEFAULT 0 COMMENT '操作人ID',
@@ -201,7 +201,7 @@ CREATE TABLE `sys_oper_log` (
 
 -- ---------- 登录日志 ----------
 CREATE TABLE `sys_login_log` (
-  `id` BIGINT NOT NULL COMMENT '主键',
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `user_id` BIGINT DEFAULT NULL COMMENT '用户ID',
   `username` VARCHAR(30) NOT NULL DEFAULT '' COMMENT '用户名',
   `ip` VARCHAR(50) NOT NULL DEFAULT '' COMMENT 'IP',

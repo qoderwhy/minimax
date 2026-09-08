@@ -42,7 +42,7 @@ frontend/src/
 ```sql
 -- V1.0.0__sys_user.sql
 CREATE TABLE `sys_user` (
-  `id` BIGINT NOT NULL COMMENT '主键',
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `username` VARCHAR(30) NOT NULL DEFAULT '' COMMENT '登录名',
   `password` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '密码(BCrypt)',
   `nickname` VARCHAR(30) NOT NULL DEFAULT '' COMMENT '昵称',
@@ -77,8 +77,6 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.qkit.common.entity.BaseEntity;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -92,8 +90,7 @@ import java.time.LocalDateTime;
 @TableName("sys_user")
 public class User extends BaseEntity {
 
-    @TableId(type = IdType.ASSIGN_ID)
-    @JsonSerialize(using = ToStringSerializer.class)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private String username;
@@ -185,22 +182,19 @@ public record UserQueryDTO(
 ```java
 package com.qkit.system.domain.vo;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 用户 VO record。{@code id / deptId / postId} 走 {@link ToStringSerializer} 序列化为字符串，
- * 防止 JS 端丢失雪花 ID 精度。
+ * 用户 VO record。主键自增，Long 直接序列化为数字，无 JS 精度问题。
  * <p>字典翻译字段（{@code sexLabel / statusLabel}）由 Service 层填充；详情专用字段
  * （{@code roleIds}）由 detail 接口专用 VO {@link UserDetailVO} 提供。</p>
  */
 @Schema(description = "用户 VO")
 public record UserVO(
-    @JsonSerialize(using = ToStringSerializer.class) Long id,
+    Long id,
     String username,
     String nickname,
     String realName,
@@ -209,9 +203,9 @@ public record UserVO(
     String avatar,
     Integer sex,
     String sexLabel,
-    @JsonSerialize(using = ToStringSerializer.class) Long deptId,
+    Long deptId,
     String deptName,
-    @JsonSerialize(using = ToStringSerializer.class) Long postId,
+    Long postId,
     String postName,
     Integer status,
     String statusLabel,
@@ -770,8 +764,6 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.qkit.common.entity.BaseEntity;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -783,12 +775,10 @@ import lombok.Setter;
 @TableName("sys_dept")
 public class Dept extends BaseEntity {
 
-    @TableId(type = IdType.ASSIGN_ID)
-    @JsonSerialize(using = ToStringSerializer.class)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private String name;
-    @JsonSerialize(using = ToStringSerializer.class)
     private Long parentId;
     private Integer sort;
     private String leader;
@@ -806,16 +796,14 @@ public class Dept extends BaseEntity {
 ```java
 package com.qkit.system.domain.vo;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
-/** el-tree 数据源：label=value，value=id，children=子节点。 */
+/** el-tree 数据源：label=name，value=id 字符串，children=子节点。 */
 @Schema(description = "部门树节点")
 public record DeptTreeVO(
-    @JsonSerialize(using = ToStringSerializer.class) Long id,
-    @JsonSerialize(using = ToStringSerializer.class) Long parentId,
+    Long id,
+    Long parentId,
     String label,       // el-tree 节点显示（= name）
     String value,       // el-tree 节点值（= id 字符串）
     List<DeptTreeVO> children
@@ -830,9 +818,9 @@ public record DeptTreeVO(
 
 ```java
 public record DeptSimpleVO(
-    @JsonSerialize(using = ToStringSerializer.class) Long id,
+    Long id,
     String name,
-    @JsonSerialize(using = ToStringSerializer.class) Long parentId
+    Long parentId
 ) {}
 ```
 

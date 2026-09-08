@@ -1,8 +1,8 @@
 import request from '@/utils/request'
 
 export interface MenuItem {
-  id: string
-  parentId: string
+  id: number
+  parentId: number
   name: string
   type: number
   path?: string
@@ -17,8 +17,8 @@ export interface MenuItem {
 }
 
 export interface MenuSave {
-  id?: string
-  parentId: string
+  id?: number
+  parentId: number
   name: string
   type: number
   path?: string
@@ -45,6 +45,6 @@ export function saveMenu(data: MenuSave) {
     : request.post<void>({ url: '/admin-api/system/menu/create', data })
 }
 
-export function deleteMenu(id: string) {
+export function deleteMenu(id: number) {
   return request.delete<void>({ url: '/admin-api/system/menu/delete', data: [id] })
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
-import { deleteDictType, deleteDictItem, pageDictItem, pageDictType, saveDictItem, saveDictType, type DictItem, type DictType } from '@/api/system/dict'
+import { deleteDictType, deleteDictItem, pageDictItem, pageDictType, saveDictItem, saveDictType, type DictItem, type DictItemSave, type DictType, type DictTypeSave } from '@/api/system/dict'
 
 // ---------- 字典类型（左栏） ----------
 const typeQuery = reactive({ pageNum: 1, pageSize: 10, type: '', name: '', status: undefined as number | undefined })
@@ -10,7 +10,7 @@ const typeTotal = ref(0)
 const typeLoading = ref(false)
 const typeDialogVisible = ref(false)
 const typeDialogMode = ref<'add' | 'edit'>('add')
-const typeForm = ref<DictType>({ id: '', type: '', name: '', status: 1, remark: '' })
+const typeForm = ref<DictTypeSave>({ id: undefined, type: '', name: '', status: 1, remark: '' })
 const typeFormRef = ref()
 
 // ---------- 字典项（右栏） ----------
@@ -20,7 +20,7 @@ const itemTotal = ref(0)
 const itemLoading = ref(false)
 const itemDialogVisible = ref(false)
 const itemDialogMode = ref<'add' | 'edit'>('add')
-const itemForm = ref<DictItem>({ id: '', dictType: '', label: '', value: '', sort: 0, status: 1, cssClass: 'primary', remark: '' })
+const itemForm = ref<DictItemSave>({ id: undefined, dictType: '', label: '', value: '', sort: 0, status: 1, cssClass: 'primary', remark: '' })
 const itemFormRef = ref()
 
 /** 当前选中的字典类型 */
@@ -48,7 +48,7 @@ function onTypeSearch() {
 
 function onTypeAdd() {
   typeDialogMode.value = 'add'
-  typeForm.value = { id: '', type: '', name: '', status: 1, remark: '' }
+  typeForm.value = { id: undefined, type: '', name: '', status: 1, remark: '' }
   typeDialogVisible.value = true
 }
 
@@ -116,7 +116,7 @@ function onItemAdd() {
     return
   }
   itemDialogMode.value = 'add'
-  itemForm.value = { id: '', dictType: selectedType.value.type, label: '', value: '', sort: 0, status: 1, cssClass: 'primary', remark: '' }
+  itemForm.value = { id: undefined, dictType: selectedType.value.type, label: '', value: '', sort: 0, status: 1, cssClass: 'primary', remark: '' }
   itemDialogVisible.value = true
 }
 

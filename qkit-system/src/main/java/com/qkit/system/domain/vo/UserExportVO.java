@@ -1,6 +1,7 @@
 package com.qkit.system.domain.vo;
 
 import com.alibaba.excel.annotation.ExcelProperty;
+import com.alibaba.excel.annotation.format.DateTimeFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -50,5 +51,6 @@ public class UserExportVO {
 
     @Schema(description = "创建时间")
     @ExcelProperty("创建时间")
+    @DateTimeFormat("yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
 }

@@ -39,12 +39,13 @@
 |---|---|---|---|
 | Entity | class | `@Getter` + 必要 setter + 构造器；**禁** `@Data` | 严格控制 |
 | DTO（入参） | **record** | record component 上加 `jakarta.validation` 注解；分组用 `groups` | `obj.field()` |
-| VO（出参） | **record** | Long 字段加 `@JsonSerialize(ToStringSerializer.class)` 防 JS 精度丢失 | `obj.field()` |
+| VO（出参） | **record** | Long 字段直接序列化为数字（主键自增，值域小，无精度丢失） | `obj.field()` |
 | Convert | interface | `@Mapper(componentModel = "spring")`；Update 用 `@Mapping(target = "password", ignore = true)` | — |
 
 > - **DTO/VO 一律 record**：不可变、线程安全、自动生成 `equals/hashCode/toString`；与 Java 17 特性对齐。
 > - **Entity 禁 `@Data`** 是为了避免无脑 setter 破坏不变量；service 层可控修改字段时单独暴露 setter。
 > - record 的 component 上不能加 Lombok 注解（`@Data` 等），但 Jackson / Validation / MapStruct 全部支持 record。
+> - **导出时间格式**：EasyExcel 导出不经过 Jackson，导出 VO 的时间字段必须显式标注 `@DateTimeFormat("yyyy-MM-dd HH:mm:ss")`（`com.alibaba.excel.annotation.format.DateTimeFormat`），与接口全局格式保持一致。
 > - **例外**：`com.qkit.common.api.R<T>` 通用响应包装属于框架 API 类，不属于 DTO/VO，可使用 Lombok `@Data`；详见 05 §1。
 
 ### 1.5 对象映射

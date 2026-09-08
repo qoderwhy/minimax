@@ -123,7 +123,7 @@
 | D-mini-1 | 包名 | `com.qkit` | 与模块名 qkit-* 对齐 |
 | D-mini-2 | 模块前缀 | `qkit-` | 而不是 lowcode- / scaffold-；与兄弟项目区分 |
 | D-mini-3 | 认证框架 | **Sa-Token 1.39.0** | 不用 Spring Security；JWT 模式 |
-| D-mini-4 | 主键策略 | 雪花 `ASSIGN_ID`（Long） + `@JsonSerialize(ToStringSerializer.class)` | 解决 JS 整数溢出 |
+| D-mini-4 | 主键策略 | 数据库自增 `BIGINT AUTO_INCREMENT` + 实体 `@TableId(type = IdType.AUTO)`，Long 直接序列化为数字 | 自增值小，无 JS 精度问题 |
 | D-mini-5 | 公共字段 | `create_by / create_time / update_by / update_time / del_flag(0/1)` | 口径与 yudao-cloud 一致 |
 | D-mini-6 | 返回码 | `code=200 成功`；失败 `code != 200` + `msg` | ErrorCode 枚举统一 |
 | D-mini-7 | 分页 | `pageNum / pageSize`（入参）；`R.ok(data, total, pageNum, pageSize)` | 与 05 一致 |

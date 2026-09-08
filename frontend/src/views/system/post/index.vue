@@ -9,7 +9,7 @@ const total = ref(0)
 const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<PostSave>({ id: '', name: '', code: '', sort: 0, status: 1, remark: '' })
+const form = ref<PostSave>({ id: undefined, name: '', code: '', sort: 0, status: 1, remark: '' })
 const formRef = ref()
 
 async function fetch() {
@@ -30,7 +30,7 @@ function onSearch() {
 
 function onAdd() {
   dialogMode.value = 'add'
-  form.value = { id: '', name: '', code: '', sort: 0, status: 1, remark: '' }
+  form.value = { id: undefined, name: '', code: '', sort: 0, status: 1, remark: '' }
   dialogVisible.value = true
 }
 

@@ -113,7 +113,7 @@ public class UserServiceImpl implements UserService {
                 vo.deptId(), vo.deptName(), vo.postId(), vo.postName(),
                 vo.status(), vo.statusLabel(), vo.loginIp(), vo.loginDate(),
                 vo.createTime(), vo.remark(),
-                roleIds == null ? null : roleIds.stream().map(String::valueOf).toList()
+                roleIds
         ));
     }
 

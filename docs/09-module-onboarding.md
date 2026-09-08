@@ -36,7 +36,7 @@
 
 ```sql
 CREATE TABLE `b_trade_order` (
-  `id` BIGINT NOT NULL COMMENT '主键',
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `order_no` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '订单号',
   `customer_id` BIGINT NOT NULL DEFAULT 0 COMMENT '客户ID',
   `amount` DECIMAL(18,2) NOT NULL DEFAULT 0 COMMENT '金额',
@@ -60,7 +60,7 @@ CREATE TABLE `b_trade_order` (
 参照 08 黄金示例 1.3。注意：
 
 - `@TableName("b_trade_order")`
-- 主键 `@TableId(type = IdType.ASSIGN_ID)` + `@JsonSerialize(ToStringSerializer.class)`
+- 主键 `@TableId(type = IdType.AUTO)`（配合 DDL `AUTO_INCREMENT`）
 - 金额字段 `BigDecimal`，**禁** `double / float`
 - 逻辑删除 `@TableLogic` 加在 `delFlag` 字段
 

@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
 export interface LoginLogItem {
-  id: string
+  id: number
   username?: string
   ip?: string
   status: number
@@ -25,7 +25,7 @@ export function pageLoginLog(params: {
   })
 }
 
-export function deleteLoginLog(id: string) {
+export function deleteLoginLog(id: number) {
   return request.delete<void>({ url: '/admin-api/system/login-log/delete', data: [id] })
 }
 

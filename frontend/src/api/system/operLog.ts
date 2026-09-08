@@ -1,10 +1,10 @@
 import request from '@/utils/request'
 
 export interface OperLogItem {
-  id: string
+  id: number
   module: string
   name: string
-  userId?: string
+  userId?: number
   username?: string
   ip?: string
   status: number
@@ -31,7 +31,7 @@ export function pageOperLog(params: {
   })
 }
 
-export function deleteOperLog(id: string) {
+export function deleteOperLog(id: number) {
   return request.delete<void>({ url: '/admin-api/system/oper-log/delete', data: [id] })
 }
 

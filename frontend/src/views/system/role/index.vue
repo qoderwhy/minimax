@@ -10,7 +10,7 @@ const loading = ref(false)
 
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<RoleSave>({ id: '', name: '', code: '', status: 1, dataScope: 1, sort: 0, remark: '', menuIds: [] })
+const form = ref<RoleSave>({ id: undefined, name: '', code: '', status: 1, dataScope: 1, sort: 0, remark: '', menuIds: [] })
 const formRef = ref()
 
 async function fetch() {
@@ -39,7 +39,7 @@ function onReset() {
 
 function onAdd() {
   dialogMode.value = 'add'
-  form.value = { id: '', name: '', code: '', status: 1, dataScope: 1, sort: 0, remark: '', menuIds: [] }
+  form.value = { id: undefined, name: '', code: '', status: 1, dataScope: 1, sort: 0, remark: '', menuIds: [] }
   dialogVisible.value = true
 }
 

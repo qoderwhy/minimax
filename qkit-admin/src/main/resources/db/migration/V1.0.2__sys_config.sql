@@ -4,7 +4,7 @@
 
 -- ---------- 系统参数配置表 ----------
 CREATE TABLE `sys_config` (
-  `id`           BIGINT       NOT NULL COMMENT '主键',
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
   `config_name`  VARCHAR(100) NOT NULL DEFAULT '' COMMENT '参数名称',
   `config_key`   VARCHAR(100) NOT NULL DEFAULT '' COMMENT '参数键名（程序取值的Key）',
   `config_value` VARCHAR(500) NOT NULL DEFAULT '' COMMENT '参数键值',

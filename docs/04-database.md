@@ -4,9 +4,9 @@
 
 ## 1. 设计原则
 
-1. **公共列**：每张业务表必须含 `create_by / create_time / update_by / update_time / del_flag` 5 个公共字段，外加主键 `id`（雪花 `BIGINT`）。
+1. **公共列**：每张业务表必须含 `create_by / create_time / update_by / update_time / del_flag` 5 个公共字段，外加主键 `id`（自增 `BIGINT AUTO_INCREMENT`）。
 2. **逻辑删除**：`del_flag TINYINT DEFAULT 0`（0=未删，1=已删），统一由 MyBatis-Plus `@TableLogic` 处理。
-3. **主键策略**：雪花 ID `BIGINT` + `@JsonSerialize(ToStringSerializer.class)` 输出字符串。
+3. **主键策略**：数据库自增 `BIGINT AUTO_INCREMENT`，实体主键 `@TableId(type = IdType.AUTO)`，`Long` 直接序列化为数字。
 4. **字符集**：库 `utf8mb4`、表 `utf8mb4_unicode_ci`、排序规则默认。
 5. **时区**：`+08:00`（东八区），MySQL 服务端和连接都设。
 6. **金额**：本期无金额表，**预声明**：所有金额字段必须 `DECIMAL(18,2)` 或 `BIGINT`（分），**禁止** `DOUBLE/FLOAT`。
@@ -89,7 +89,7 @@ sys_config (系统参数)      独立，无表间关系
 
 | 字段 | 类型 | 必填 | 默认 | 说明 |
 |---|---|---|---|---|
-| id | BIGINT | ✓ | 雪花 | 主键 |
+| id | BIGINT | ✓ | 自增 | 主键 |
 | username | VARCHAR(30) | ✓ | — | 登录名，唯一 |
 | password | VARCHAR(100) | ✓ | — | BCrypt 密文 |
 | nickname | VARCHAR(30) | | | 昵称 |
@@ -283,7 +283,7 @@ sys_config (系统参数)      独立，无表间关系
 
 | 字段 | 类型 | 必填 | 默认 | 说明 |
 |---|---|---|---|---|
-| id | BIGINT | ✓ | 雪花 | 主键 |
+| id | BIGINT | ✓ | 自增 | 主键 |
 | config_name | VARCHAR(100) | ✓ | — | 参数名称 |
 | config_key | VARCHAR(100) | ✓ | — | 参数键名（程序取值的 Key，唯一） |
 | config_value | VARCHAR(500) | | '' | 参数键值 |

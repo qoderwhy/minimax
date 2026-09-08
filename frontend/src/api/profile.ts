@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 /** 个人资料（对齐后端 UserVO） */
 export interface ProfileVO {
-  id: string
+  id: number
   username: string
   nickname: string
   realName?: string
@@ -11,9 +11,9 @@ export interface ProfileVO {
   avatar?: string
   sex?: number
   sexLabel?: string
-  deptId?: string
+  deptId?: number
   deptName?: string
-  postId?: string
+  postId?: number
   postName?: string
   status?: number
   statusLabel?: string
@@ -21,7 +21,7 @@ export interface ProfileVO {
   loginDate?: string
   createTime?: string
   remark?: string
-  roleIds?: string[]
+  roleIds?: number[]
 }
 
 /** 更新个人资料请求体 */

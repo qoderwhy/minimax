@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
 export interface DictItem {
-  id: string
+  id: number
   dictType: string
   label: string
   value: string
@@ -13,10 +13,29 @@ export interface DictItem {
 }
 
 export interface DictType {
-  id: string
+  id: number
   type: string
   name: string
   status: number
+  remark?: string
+}
+
+export interface DictTypeSave {
+  id?: number
+  type: string
+  name: string
+  status: number
+  remark?: string
+}
+
+export interface DictItemSave {
+  id?: number
+  dictType: string
+  label: string
+  value: string
+  sort: number
+  status: number
+  cssClass?: string
   remark?: string
 }
 
@@ -30,13 +49,13 @@ export function pageDictType(params: {
   return request.page<DictType>({ url: '/admin-api/system/dict/page', params })
 }
 
-export function saveDictType(data: DictType) {
+export function saveDictType(data: DictTypeSave) {
   return data.id
     ? request.put<void>({ url: '/admin-api/system/dict/update', data })
     : request.post<void>({ url: '/admin-api/system/dict/create', data })
 }
 
-export function deleteDictType(id: string) {
+export function deleteDictType(id: number) {
   return request.delete<void>({ url: '/admin-api/system/dict/delete', data: [id] })
 }
 
@@ -64,13 +83,13 @@ function labelFilter(list: DictItem[], label?: string) {
   return list.filter((i) => i.label.includes(label))
 }
 
-export function saveDictItem(data: DictItem) {
+export function saveDictItem(data: DictItemSave) {
   return data.id
     ? request.put<void>({ url: '/admin-api/system/dict/item/update', data })
     : request.post<void>({ url: '/admin-api/system/dict/item/create', data })
 }
 
-export function deleteDictItem(id: string) {
+export function deleteDictItem(id: number) {
   return request.delete<void>({ url: '/admin-api/system/dict/item/delete', data: [id] })
 }
 
