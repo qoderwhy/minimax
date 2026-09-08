@@ -26,6 +26,12 @@ public class GlobalExceptionHandler {
         return R.fail(e.getCode(), e.getMessage());
     }
 
+    @ExceptionHandler(SystemException.class)
+    public R<Void> handleSystem(SystemException e) {
+        log.error("系统异常：{}", e.getMessage(), e);
+        return R.fail(e.getCode(), e.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public R<Void> handleValid(MethodArgumentNotValidException e) {
         String msg = e.getBindingResult().getFieldErrors().stream()
