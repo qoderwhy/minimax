@@ -1,5 +1,6 @@
 package com.qkit.common.exception;
 
+import com.qkit.common.api.ErrorCode;
 import lombok.Getter;
 
 /**
@@ -15,6 +16,11 @@ public sealed class SystemException extends RuntimeException permits SystemExcep
     public SystemException(int code, String message, Throwable cause) {
         super(message, cause);
         this.code = code;
+    }
+
+    public SystemException(ErrorCode errorCode, String message, Throwable cause) {
+        super(message, cause);
+        this.code = errorCode.getCode();
     }
 
     /**

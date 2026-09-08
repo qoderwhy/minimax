@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qkit.common.api.ErrorCode;
 import com.qkit.common.api.R;
 import com.qkit.common.exception.BusinessException;
+import com.qkit.common.exception.SystemException;
 import com.qkit.system.convert.UserConvert;
 import com.qkit.system.domain.dto.PasswordDTO;
 import com.qkit.system.domain.dto.UserProfileUpdateDTO;
@@ -95,7 +96,7 @@ public class UserServiceImpl implements UserService {
                     .sheet("用户列表")
                     .doWrite(exportList);
         } catch (IOException e) {
-            throw new BusinessException(ErrorCode.EXPORT_ERROR);
+            throw new SystemException(ErrorCode.EXPORT_ERROR, "导出失败，请稍后重试", e);
         }
     }
 
