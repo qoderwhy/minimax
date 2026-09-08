@@ -7,7 +7,7 @@ export interface MenuItem {
   type: number
   path?: string
   component?: string
-  permCode?: string
+  perm?: string
   icon?: string
   sort: number
   status: number
@@ -23,7 +23,7 @@ export interface MenuSave {
   type: number
   path?: string
   component?: string
-  permCode?: string
+  perm?: string
   icon?: string
   sort: number
   status: number

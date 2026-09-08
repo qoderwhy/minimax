@@ -7,7 +7,7 @@ const list = ref<MenuItem[]>([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<MenuSave>({ id: '', parentId: '0', name: '', type: 1, path: '', component: '', permCode: '', icon: '', sort: 0, status: 1, visible: 1, keepAlive: 0 })
+const form = ref<MenuSave>({ id: '', parentId: '0', name: '', type: 1, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 1, keepAlive: 0 })
 const formRef = ref()
 
 async function fetch() {
@@ -21,13 +21,13 @@ async function fetch() {
 
 function onAdd() {
   dialogMode.value = 'add'
-  form.value = { id: '', parentId: '0', name: '', type: 1, path: '', component: '', permCode: '', icon: '', sort: 0, status: 1, visible: 1, keepAlive: 0 }
+  form.value = { id: '', parentId: '0', name: '', type: 1, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 1, keepAlive: 0 }
   dialogVisible.value = true
 }
 
 function onAddChild(parent: MenuItem) {
   dialogMode.value = 'add'
-  form.value = { id: '', parentId: parent.id, name: '', type: 2, path: '', component: '', permCode: '', icon: '', sort: 0, status: 1, visible: 1, keepAlive: 0 }
+  form.value = { id: '', parentId: parent.id, name: '', type: 2, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 1, keepAlive: 0 }
   dialogVisible.value = true
 }
 
@@ -40,7 +40,7 @@ function onEdit(row: MenuItem) {
     type: row.type,
     path: row.path || '',
     component: row.component || '',
-    permCode: row.permCode || '',
+    perm: row.perm || '',
     icon: row.icon || '',
     sort: row.sort,
     status: row.status,
@@ -85,7 +85,7 @@ onMounted(fetch)
         <el-table-column prop="icon" label="图标" width="80" />
         <el-table-column prop="path" label="路由" />
         <el-table-column prop="component" label="组件" />
-        <el-table-column prop="permCode" label="权限标识" />
+        <el-table-column prop="perm" label="权限标识" />
         <el-table-column prop="sort" label="排序" width="70" />
         <el-table-column label="操作" width="240">
           <template #default="{ row }">
@@ -113,7 +113,7 @@ onMounted(fetch)
         <el-form-item v-if="form.type !== 3" label="图标"><el-input v-model="form.icon" placeholder="如：User" /></el-form-item>
         <el-form-item v-if="form.type !== 3" label="路由"><el-input v-model="form.path" placeholder="如：user" /></el-form-item>
         <el-form-item v-if="form.type === 2" label="组件"><el-input v-model="form.component" placeholder="如：system/user/index" /></el-form-item>
-        <el-form-item label="权限标识"><el-input v-model="form.permCode" placeholder="如：system:user:save" /></el-form-item>
+        <el-form-item label="权限标识"><el-input v-model="form.perm" placeholder="如：system:user:save" /></el-form-item>
         <el-form-item label="排序"><el-input-number v-model="form.sort" :min="0" /></el-form-item>
         <el-form-item v-if="form.type === 2" label="显示">
           <el-radio-group v-model="form.visible">
