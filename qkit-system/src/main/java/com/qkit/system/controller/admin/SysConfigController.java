@@ -5,6 +5,7 @@ import com.qkit.common.api.R;
 import com.qkit.common.validation.group.SaveGroup;
 import com.qkit.common.validation.group.UpdateGroup;
 import com.qkit.framework.log.annotation.OperLog;
+import com.qkit.framework.repeat.annotation.RepeatSubmit;
 import com.qkit.system.domain.dto.SysConfigQueryDTO;
 import com.qkit.system.domain.dto.SysConfigSaveDTO;
 import com.qkit.system.domain.vo.SysConfigVO;
@@ -48,6 +49,7 @@ public class SysConfigController {
     @PostMapping("/create")
     @SaCheckPermission("system:config:create")
     @OperLog(module = "参数配置", name = "新增参数配置")
+    @RepeatSubmit
     public R<Long> create(@RequestBody @Validated(SaveGroup.class) SysConfigSaveDTO dto) {
         return sysConfigService.create(dto);
     }
@@ -56,6 +58,7 @@ public class SysConfigController {
     @PutMapping("/update")
     @SaCheckPermission("system:config:update")
     @OperLog(module = "参数配置", name = "更新参数配置")
+    @RepeatSubmit
     public R<Boolean> update(@RequestBody @Validated(UpdateGroup.class) SysConfigSaveDTO dto) {
         return sysConfigService.update(dto);
     }
@@ -64,6 +67,7 @@ public class SysConfigController {
     @DeleteMapping("/delete")
     @SaCheckPermission("system:config:delete")
     @OperLog(module = "参数配置", name = "删除参数配置")
+    @RepeatSubmit
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return sysConfigService.delete(ids);
     }

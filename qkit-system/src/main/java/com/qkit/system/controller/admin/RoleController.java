@@ -5,6 +5,7 @@ import com.qkit.common.api.R;
 import com.qkit.common.validation.group.SaveGroup;
 import com.qkit.common.validation.group.UpdateGroup;
 import com.qkit.framework.log.annotation.OperLog;
+import com.qkit.framework.repeat.annotation.RepeatSubmit;
 import com.qkit.system.domain.dto.RoleQueryDTO;
 import com.qkit.system.domain.dto.RoleSaveDTO;
 import com.qkit.system.domain.vo.RoleVO;
@@ -54,6 +55,7 @@ public class RoleController {
     @PostMapping("/create")
     @SaCheckPermission("system:role:create")
     @OperLog(module = "角色管理", name = "新增角色")
+    @RepeatSubmit
     public R<Long> create(@RequestBody @Validated(SaveGroup.class) RoleSaveDTO dto) {
         return roleService.create(dto);
     }
@@ -62,6 +64,7 @@ public class RoleController {
     @PutMapping("/update")
     @SaCheckPermission("system:role:update")
     @OperLog(module = "角色管理", name = "更新角色")
+    @RepeatSubmit
     public R<Boolean> update(@RequestBody @Validated(UpdateGroup.class) RoleSaveDTO dto) {
         return roleService.update(dto);
     }
@@ -70,6 +73,7 @@ public class RoleController {
     @DeleteMapping("/delete")
     @SaCheckPermission("system:role:delete")
     @OperLog(module = "角色管理", name = "删除角色")
+    @RepeatSubmit
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return roleService.delete(ids);
     }
@@ -78,6 +82,7 @@ public class RoleController {
     @PutMapping("/assign-menu")
     @SaCheckPermission("system:role:assign-menu")
     @OperLog(module = "角色管理", name = "分配菜单")
+    @RepeatSubmit
     public R<Boolean> assignMenu(@RequestParam Long roleId, @RequestBody List<Long> menuIds) {
         return roleService.assignMenu(roleId, menuIds);
     }

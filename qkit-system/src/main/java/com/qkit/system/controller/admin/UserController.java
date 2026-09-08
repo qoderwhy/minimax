@@ -6,6 +6,7 @@ import com.qkit.common.api.R;
 import com.qkit.common.validation.group.SaveGroup;
 import com.qkit.common.validation.group.UpdateGroup;
 import com.qkit.framework.log.annotation.OperLog;
+import com.qkit.framework.repeat.annotation.RepeatSubmit;
 import com.qkit.system.domain.dto.PasswordDTO;
 import com.qkit.system.domain.dto.UserProfileUpdateDTO;
 import com.qkit.system.domain.dto.UserQueryDTO;
@@ -56,6 +57,7 @@ public class UserController {
     @PostMapping("/create")
     @SaCheckPermission("system:user:create")
     @OperLog(module = "用户管理", name = "新增用户")
+    @RepeatSubmit
     public R<Long> create(@RequestBody @Validated(SaveGroup.class) UserSaveDTO dto) {
         return userService.create(dto);
     }
@@ -64,6 +66,7 @@ public class UserController {
     @PutMapping("/update")
     @SaCheckPermission("system:user:update")
     @OperLog(module = "用户管理", name = "更新用户")
+    @RepeatSubmit
     public R<Boolean> update(@RequestBody @Validated(UpdateGroup.class) UserSaveDTO dto) {
         return userService.update(dto);
     }
@@ -72,6 +75,7 @@ public class UserController {
     @DeleteMapping("/delete")
     @SaCheckPermission("system:user:delete")
     @OperLog(module = "用户管理", name = "删除用户")
+    @RepeatSubmit
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return userService.delete(ids);
     }
@@ -80,6 +84,7 @@ public class UserController {
     @PutMapping("/reset-password")
     @SaCheckPermission("system:user:reset-password")
     @OperLog(module = "用户管理", name = "重置密码")
+    @RepeatSubmit
     public R<Boolean> resetPassword(@RequestParam Long userId, @RequestParam String newPassword) {
         return userService.resetPassword(userId, newPassword);
     }
@@ -88,6 +93,7 @@ public class UserController {
     @PutMapping("/assign-role")
     @SaCheckPermission("system:user:assign-role")
     @OperLog(module = "用户管理", name = "分配角色")
+    @RepeatSubmit
     public R<Boolean> assignRole(@RequestParam Long userId, @RequestBody List<Long> roleIds) {
         return userService.assignRole(userId, roleIds);
     }
@@ -115,6 +121,7 @@ public class UserController {
     @Operation(summary = "更新个人资料")
     @PutMapping("/profile")
     @OperLog(module = "个人中心", name = "更新个人资料")
+    @RepeatSubmit
     public R<Boolean> updateProfile(@RequestBody @Valid UserProfileUpdateDTO dto) {
         return userService.updateProfile(StpUtil.getLoginIdAsLong(), dto);
     }
@@ -122,6 +129,7 @@ public class UserController {
     @Operation(summary = "修改密码（本人）")
     @PutMapping("/profile/password")
     @OperLog(module = "个人中心", name = "修改密码")
+    @RepeatSubmit
     public R<Boolean> changePassword(@RequestBody @Valid PasswordDTO dto) {
         return userService.changePassword(StpUtil.getLoginIdAsLong(), dto);
     }

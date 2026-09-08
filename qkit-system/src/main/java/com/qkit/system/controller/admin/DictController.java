@@ -6,6 +6,7 @@ import com.qkit.common.api.R;
 import com.qkit.common.validation.group.SaveGroup;
 import com.qkit.common.validation.group.UpdateGroup;
 import com.qkit.framework.log.annotation.OperLog;
+import com.qkit.framework.repeat.annotation.RepeatSubmit;
 import com.qkit.system.domain.dto.DictItemSaveDTO;
 import com.qkit.system.domain.dto.DictQueryDTO;
 import com.qkit.system.domain.dto.DictSaveDTO;
@@ -58,6 +59,7 @@ public class DictController {
     @PostMapping("/create")
     @SaCheckPermission("system:dict:create")
     @OperLog(module = "字典管理", name = "新增字典")
+    @RepeatSubmit
     public R<Long> create(@RequestBody @Validated(SaveGroup.class) DictSaveDTO dto) {
         return dictService.createDict(dto);
     }
@@ -66,6 +68,7 @@ public class DictController {
     @PutMapping("/update")
     @SaCheckPermission("system:dict:update")
     @OperLog(module = "字典管理", name = "更新字典")
+    @RepeatSubmit
     public R<Boolean> update(@RequestBody @Validated(UpdateGroup.class) DictSaveDTO dto) {
         return dictService.updateDict(dto);
     }
@@ -74,6 +77,7 @@ public class DictController {
     @DeleteMapping("/delete")
     @SaCheckPermission("system:dict:delete")
     @OperLog(module = "字典管理", name = "删除字典")
+    @RepeatSubmit
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return dictService.deleteDict(ids);
     }
@@ -81,6 +85,7 @@ public class DictController {
     @Operation(summary = "新增字典项")
     @PostMapping("/item/create")
     @OperLog(module = "字典管理", name = "新增字典项")
+    @RepeatSubmit
     public R<Long> createItem(@RequestBody @Validated(SaveGroup.class) DictItemSaveDTO dto) {
         return dictService.createItem(dto);
     }
@@ -88,6 +93,7 @@ public class DictController {
     @Operation(summary = "更新字典项")
     @PutMapping("/item/update")
     @OperLog(module = "字典管理", name = "更新字典项")
+    @RepeatSubmit
     public R<Boolean> updateItem(@RequestBody @Validated(UpdateGroup.class) DictItemSaveDTO dto) {
         return dictService.updateItem(dto);
     }
@@ -95,6 +101,7 @@ public class DictController {
     @Operation(summary = "删除字典项")
     @DeleteMapping("/item/delete")
     @OperLog(module = "字典管理", name = "删除字典项")
+    @RepeatSubmit
     public R<Boolean> deleteItem(@RequestBody List<Long> ids) {
         return dictService.deleteItem(ids);
     }

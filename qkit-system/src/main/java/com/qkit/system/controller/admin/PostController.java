@@ -5,6 +5,7 @@ import com.qkit.common.api.R;
 import com.qkit.common.validation.group.SaveGroup;
 import com.qkit.common.validation.group.UpdateGroup;
 import com.qkit.framework.log.annotation.OperLog;
+import com.qkit.framework.repeat.annotation.RepeatSubmit;
 import com.qkit.system.domain.dto.PostQueryDTO;
 import com.qkit.system.domain.dto.PostSaveDTO;
 import com.qkit.system.domain.vo.PostVO;
@@ -48,6 +49,7 @@ public class PostController {
     @PostMapping("/create")
     @SaCheckPermission("system:post:create")
     @OperLog(module = "岗位管理", name = "新增岗位")
+    @RepeatSubmit
     public R<Long> create(@RequestBody @Validated(SaveGroup.class) PostSaveDTO dto) {
         return postService.create(dto);
     }
@@ -56,6 +58,7 @@ public class PostController {
     @PutMapping("/update")
     @SaCheckPermission("system:post:update")
     @OperLog(module = "岗位管理", name = "更新岗位")
+    @RepeatSubmit
     public R<Boolean> update(@RequestBody @Validated(UpdateGroup.class) PostSaveDTO dto) {
         return postService.update(dto);
     }
@@ -64,6 +67,7 @@ public class PostController {
     @DeleteMapping("/delete")
     @SaCheckPermission("system:post:delete")
     @OperLog(module = "岗位管理", name = "删除岗位")
+    @RepeatSubmit
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return postService.delete(ids);
     }

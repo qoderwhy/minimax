@@ -111,6 +111,8 @@ public interface OrderMapper extends BaseMapper<Order> {
 
 按 08 黄金示例 1.11 抄。**每个方法加 `@SaCheckPermission` 与 `@OperLog`**。
 
+新增/更新/删除等写接口可加 `@RepeatSubmit`（默认按登录用户 3 秒防重，防双击连点；需要时可配 `interval`/`type`/`useParams`）。
+
 ### Step 9：写前端
 
 - `frontend/src/types/trade/order.ts` — TS 类型

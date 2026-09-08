@@ -5,6 +5,7 @@ import com.qkit.common.api.R;
 import com.qkit.common.validation.group.SaveGroup;
 import com.qkit.common.validation.group.UpdateGroup;
 import com.qkit.framework.log.annotation.OperLog;
+import com.qkit.framework.repeat.annotation.RepeatSubmit;
 import com.qkit.system.domain.dto.DeptSaveDTO;
 import com.qkit.system.domain.vo.DeptSimpleVO;
 import com.qkit.system.domain.vo.DeptTreeVO;
@@ -43,6 +44,7 @@ public class DeptController {
     @PostMapping("/create")
     @SaCheckPermission("system:dept:create")
     @OperLog(module = "部门管理", name = "新增部门")
+    @RepeatSubmit
     public R<Long> create(@RequestBody @Validated(SaveGroup.class) DeptSaveDTO dto) {
         return deptService.create(dto);
     }
@@ -51,6 +53,7 @@ public class DeptController {
     @PutMapping("/update")
     @SaCheckPermission("system:dept:update")
     @OperLog(module = "部门管理", name = "更新部门")
+    @RepeatSubmit
     public R<Boolean> update(@RequestBody @Validated(UpdateGroup.class) DeptSaveDTO dto) {
         return deptService.update(dto);
     }
@@ -59,6 +62,7 @@ public class DeptController {
     @DeleteMapping("/delete")
     @SaCheckPermission("system:dept:delete")
     @OperLog(module = "部门管理", name = "删除部门")
+    @RepeatSubmit
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return deptService.delete(ids);
     }

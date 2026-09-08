@@ -5,6 +5,7 @@ import com.qkit.common.api.R;
 import com.qkit.common.validation.group.SaveGroup;
 import com.qkit.common.validation.group.UpdateGroup;
 import com.qkit.framework.log.annotation.OperLog;
+import com.qkit.framework.repeat.annotation.RepeatSubmit;
 import com.qkit.system.domain.dto.MenuSaveDTO;
 import com.qkit.system.domain.vo.MenuVO;
 import com.qkit.system.domain.vo.RouteVO;
@@ -42,6 +43,7 @@ public class MenuController {
     @PostMapping("/create")
     @SaCheckPermission("system:menu:create")
     @OperLog(module = "菜单管理", name = "新增菜单")
+    @RepeatSubmit
     public R<Long> create(@RequestBody @Validated(SaveGroup.class) MenuSaveDTO dto) {
         return menuService.create(dto);
     }
@@ -50,6 +52,7 @@ public class MenuController {
     @PutMapping("/update")
     @SaCheckPermission("system:menu:update")
     @OperLog(module = "菜单管理", name = "更新菜单")
+    @RepeatSubmit
     public R<Boolean> update(@RequestBody @Validated(UpdateGroup.class) MenuSaveDTO dto) {
         return menuService.update(dto);
     }
@@ -58,6 +61,7 @@ public class MenuController {
     @DeleteMapping("/delete")
     @SaCheckPermission("system:menu:delete")
     @OperLog(module = "菜单管理", name = "删除菜单")
+    @RepeatSubmit
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return menuService.delete(ids);
     }

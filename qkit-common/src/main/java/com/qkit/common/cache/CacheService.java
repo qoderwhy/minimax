@@ -40,6 +40,11 @@ public class CacheService {
         redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(ttlSeconds));
     }
 
+    /** 原子写入：key 不存在时写入并返回 true；已存在时返回 false（一次性锁，配合 TTL 用） */
+    public Boolean setIfAbsent(String key, Object value, Duration ttl) {
+        return redisTemplate.opsForValue().setIfAbsent(key, value, ttl);
+    }
+
     /** 删除指定 key，不存在时静默忽略 */
     public void delete(String... keys) {
         if (keys == null || keys.length == 0) return;

@@ -23,6 +23,9 @@ public final class CacheConstants {
     /** 系统参数缓存：sys_config:{configKey} → String configValue，增删改后刷新 */
     public static final String CONFIG_KEY_PREFIX = "sys_config:";
 
+    /** 防重复提交：repeat:submit:{user|ip|all}:{uri}[:{paramHash}]，TTL 为注解 interval */
+    public static final String REPEAT_KEY_PREFIX = "repeat:submit:";
+
     private CacheConstants() {
     }
 }

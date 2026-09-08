@@ -3,6 +3,7 @@ package com.qkit.system.controller.admin;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.qkit.common.api.R;
 import com.qkit.framework.log.annotation.OperLog;
+import com.qkit.framework.repeat.annotation.RepeatSubmit;
 import com.qkit.system.domain.dto.OperLogQueryDTO;
 import com.qkit.system.domain.vo.OperLogVO;
 import com.qkit.system.service.OperLogService;
@@ -37,6 +38,7 @@ public class OperLogController {
     @DeleteMapping("/delete")
     @SaCheckPermission("system:oper-log:delete")
     @OperLog(module = "操作日志", name = "删除操作日志")
+    @RepeatSubmit
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return operLogService.delete(ids);
     }

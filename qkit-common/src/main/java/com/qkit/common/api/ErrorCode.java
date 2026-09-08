@@ -41,7 +41,8 @@ public enum ErrorCode {
     CONFIG_BUILTIN(17002, "系统内置参数，不允许删除或修改键名"),
 
     VALIDATION_FAILED(422, "参数校验失败"),
-    TOO_MANY_REQUESTS(429, "请求过于频繁，请稍后再试");
+    TOO_MANY_REQUESTS(429, "请求过于频繁，请稍后再试"),
+    REPEAT_SUBMIT(429, "请勿重复提交，请稍后再试");
 
     private final Integer code;
     private final String message;
