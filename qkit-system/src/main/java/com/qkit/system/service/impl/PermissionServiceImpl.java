@@ -1,6 +1,7 @@
 package com.qkit.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.qkit.common.cache.CacheService;
 import com.qkit.common.constant.CacheConstants;
 import com.qkit.system.domain.entity.Menu;
 import com.qkit.system.domain.entity.Role;
@@ -13,7 +14,6 @@ import com.qkit.system.mapper.RoleMenuMapper;
 import com.qkit.system.mapper.UserRoleMapper;
 import com.qkit.system.service.PermissionService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -32,7 +32,7 @@ public class PermissionServiceImpl implements PermissionService {
     private final RoleMapper roleMapper;
     private final MenuMapper menuMapper;
     private final RoleMenuMapper roleMenuMapper;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheService cacheService;
 
     @Override
     public List<String> getUserPermissions(Long userId) {
@@ -75,7 +75,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public void clearUserPermissionCache(Long userId) {
-        redisTemplate.delete(CacheConstants.PERM_KEY_PREFIX + userId);
+        cacheService.delete(CacheConstants.PERM_KEY_PREFIX + userId);
     }
 
     private List<Long> getRoleIds(Long userId) {

@@ -6,8 +6,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qkit.common.api.ErrorCode;
 import com.qkit.common.api.R;
+import com.qkit.common.cache.CacheService;
 import com.qkit.common.constant.CacheConstants;
 import com.qkit.common.exception.BusinessException;
+import com.qkit.common.transaction.TransactionUtils;
 import com.qkit.system.convert.DictConvert;
 import com.qkit.system.convert.DictItemConvert;
 import com.qkit.system.domain.dto.DictItemSaveDTO;
@@ -23,12 +25,12 @@ import com.qkit.system.service.DictService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -41,7 +43,7 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
     private final DictItemMapper dictItemMapper;
     private final DictConvert dictConvert;
     private final DictItemConvert dictItemConvert;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheService cacheService;
 
     @Override
     @Transactional(readOnly = true)
@@ -77,7 +79,7 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
     public R<Boolean> updateDict(DictSaveDTO dto) {
         Dict dict = dictConvert.toEntity(dto);
         dictMapper.updateById(dict);
-        loadToCache(dto.type());
+        TransactionUtils.afterCommit(() -> loadToCache(dto.type()));
         return R.ok(true);
     }
 
@@ -85,15 +87,18 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
     @Transactional(rollbackFor = Exception.class)
     public R<Boolean> deleteDict(List<Long> ids) {
         if (CollUtil.isEmpty(ids)) throw new BusinessException(ErrorCode.BAD_REQUEST);
+        List<String> cacheKeys = new ArrayList<>();
         for (Long id : ids) {
             Dict dict = dictMapper.selectById(id);
             if (dict == null) continue;
             Long itemCount = dictItemMapper.selectCount(
                     new LambdaQueryWrapper<DictItem>().eq(DictItem::getDictType, dict.getType()));
             if (itemCount > 0) throw new BusinessException(ErrorCode.DICT_HAS_ITEMS);
-            redisTemplate.delete(CacheConstants.DICT_KEY_PREFIX + dict.getType());
+            cacheKeys.add(dict.getType());
         }
         dictMapper.deleteBatchIds(ids);
+        TransactionUtils.afterCommit(() -> cacheKeys.forEach(key ->
+                cacheService.delete(CacheConstants.DICT_KEY_PREFIX + key)));
         return R.ok(true);
     }
 
@@ -104,7 +109,7 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
         if (item.getStatus() == null) item.setStatus(0);
         if (item.getSort() == null) item.setSort(0);
         dictItemMapper.insert(item);
-        loadToCache(dto.dictType());
+        TransactionUtils.afterCommit(() -> loadToCache(dto.dictType()));
         return R.ok(item.getId());
     }
 
@@ -113,7 +118,7 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
     public R<Boolean> updateItem(DictItemSaveDTO dto) {
         DictItem item = dictItemConvert.toEntity(dto);
         dictItemMapper.updateById(item);
-        loadToCache(dto.dictType());
+        TransactionUtils.afterCommit(() -> loadToCache(dto.dictType()));
         return R.ok(true);
     }
 
@@ -124,7 +129,7 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
         // 删除前查询受影响 dictType
         List<DictItem> items = dictItemMapper.selectBatchIds(ids);
         dictItemMapper.deleteBatchIds(ids);
-        items.stream().map(DictItem::getDictType).distinct().forEach(this::loadToCache);
+        TransactionUtils.afterCommit(() -> items.stream().map(DictItem::getDictType).distinct().forEach(this::loadToCache));
         return R.ok(true);
     }
 
@@ -137,7 +142,7 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
     @Override
     public List<DictItemVO> getItemsByType(String type) {
         String key = CacheConstants.DICT_KEY_PREFIX + type;
-        Object cached = redisTemplate.opsForValue().get(key);
+        Object cached = cacheService.get(key);
         if (cached instanceof List<?> list) {
             return list.stream().map(o -> (DictItemVO) o).toList();
         }
@@ -160,7 +165,7 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
                 .eq(DictItem::getStatus, 0)
                 .orderByAsc(DictItem::getSort));
         List<DictItemVO> voList = dictItemConvert.toVOList(items);
-        redisTemplate.opsForValue().set(CacheConstants.DICT_KEY_PREFIX + type, voList, Duration.ofDays(7));
+        cacheService.set(CacheConstants.DICT_KEY_PREFIX + type, voList, Duration.ofDays(7));
         return voList;
     }
 }

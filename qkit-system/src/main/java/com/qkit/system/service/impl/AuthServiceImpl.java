@@ -5,6 +5,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
 import com.qkit.common.api.ErrorCode;
 import com.qkit.common.api.R;
+import com.qkit.common.cache.CacheService;
 import com.qkit.common.constant.CacheConstants;
 import com.qkit.common.exception.BusinessException;
 import com.qkit.framework.captcha.CaptchaUtil;
@@ -24,7 +25,6 @@ import com.qkit.system.enums.DataScopeEnum;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -38,7 +38,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    // 缓存验证码
+    private final CacheService cacheService;
     private final UserService userService;
     private final LoginRateLimiter loginRateLimiter;
     private final PermissionService permissionService;
@@ -48,7 +49,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public R<CaptchaVO> captcha() {
         CaptchaUtil.CaptchaResult result = CaptchaUtil.generate();
-        redisTemplate.opsForValue().set(
+        cacheService.set(
                 CacheConstants.CAPTCHA_KEY_PREFIX + result.uuid(),
                 result.code(),
                 Duration.ofMinutes(3));
@@ -63,12 +64,12 @@ public class AuthServiceImpl implements AuthService {
 
         // 2. 校验图形验证码
         if (StrUtil.isNotBlank(dto.captchaId())) {
-            String code = (String) redisTemplate.opsForValue().get(CacheConstants.CAPTCHA_KEY_PREFIX + dto.captchaId());
+            String code = cacheService.get(CacheConstants.CAPTCHA_KEY_PREFIX + dto.captchaId());
             if (code == null || !code.equalsIgnoreCase(dto.captchaCode())) {
                 recordLoginLog(null, dto.username(), clientIp, 1, "验证码错误");
                 throw new BusinessException(ErrorCode.CAPTCHA_INVALID);
             }
-            redisTemplate.delete(CacheConstants.CAPTCHA_KEY_PREFIX + dto.captchaId());
+            cacheService.delete(CacheConstants.CAPTCHA_KEY_PREFIX + dto.captchaId());
         }
 
         // 3. 校验用户

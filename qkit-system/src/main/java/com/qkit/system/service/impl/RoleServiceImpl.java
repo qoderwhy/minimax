@@ -19,7 +19,6 @@ import com.qkit.system.mapper.UserRoleMapper;
 import com.qkit.system.service.RoleMenuService;
 import com.qkit.system.service.RoleService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -35,7 +34,6 @@ public class RoleServiceImpl implements RoleService {
     private final UserRoleMapper userRoleMapper;
     private final RoleMenuService roleMenuService;
     private final RoleConvert roleConvert;
-    private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
     @Transactional(readOnly = true)

@@ -1,12 +1,13 @@
 package com.qkit.system.security;
 
 import cn.dev33.satoken.stp.StpInterface;
+import com.qkit.common.cache.CacheService;
 import com.qkit.common.constant.CacheConstants;
 import com.qkit.system.service.PermissionService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 
@@ -20,19 +21,19 @@ import java.util.List;
 public class StpInterfaceImpl implements StpInterface {
 
     private final PermissionService permissionService;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheService cacheService;
 
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
         Long userId = Long.parseLong(loginId.toString());
         String key = CacheConstants.PERM_KEY_PREFIX + userId;
-        Object cached = redisTemplate.opsForValue().get(key);
+        Object cached = cacheService.get(key);
         if (cached instanceof List<?> list) {
             return list.stream().map(Object::toString).toList();
         }
         List<String> perms = permissionService.getUserPermissions(userId);
         if (perms != null) {
-            redisTemplate.opsForValue().set(key, perms, java.time.Duration.ofMinutes(30));
+            cacheService.set(key, perms, Duration.ofMinutes(30));
         }
         return perms == null ? Collections.emptyList() : perms;
     }

@@ -7,8 +7,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qkit.common.api.ErrorCode;
 import com.qkit.common.api.R;
+import com.qkit.common.cache.CacheService;
 import com.qkit.common.constant.CacheConstants;
 import com.qkit.common.exception.BusinessException;
+import com.qkit.common.transaction.TransactionUtils;
 import com.qkit.system.convert.SysConfigConvert;
 import com.qkit.system.domain.dto.SysConfigQueryDTO;
 import com.qkit.system.domain.dto.SysConfigSaveDTO;
@@ -19,11 +21,11 @@ import com.qkit.system.service.SysConfigService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -43,7 +45,7 @@ public class SysConfigServiceImpl implements SysConfigService {
 
     private final SysConfigMapper sysConfigMapper;
     private final SysConfigConvert sysConfigConvert;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheService cacheService;
 
     @Override
     @Transactional(readOnly = true)
@@ -75,7 +77,7 @@ public class SysConfigServiceImpl implements SysConfigService {
         if (StrUtil.isBlank(config.getConfigType())) config.setConfigType("N");
         if (config.getConfigValue() == null) config.setConfigValue("");
         sysConfigMapper.insert(config);
-        refreshCache(config.getConfigKey());
+        TransactionUtils.afterCommit(() -> refreshCache(config.getConfigKey()));
         return R.ok(config.getId());
     }
 
@@ -91,12 +93,19 @@ public class SysConfigServiceImpl implements SysConfigService {
         checkKeyUnique(dto.configKey(), dto.id());
         SysConfig config = sysConfigConvert.toEntity(dto);
         if (config.getConfigValue() == null) config.setConfigValue("");
-        // 键名被修改时，需清理旧键名的缓存
-        if (!exist.getConfigKey().equals(dto.configKey())) {
-            redisTemplate.delete(CacheConstants.CONFIG_KEY_PREFIX + exist.getConfigKey());
+        String newKey = config.getConfigKey();
+        if (!exist.getConfigKey().equals(newKey)) {
+            // 键名被修改时，需清理旧键名的缓存
+            String oldKey = exist.getConfigKey();
+            sysConfigMapper.updateById(config);
+            TransactionUtils.afterCommit(() -> {
+                cacheService.delete(CacheConstants.CONFIG_KEY_PREFIX + oldKey);
+                refreshCache(newKey);
+            });
+            return R.ok(true);
         }
         sysConfigMapper.updateById(config);
-        refreshCache(config.getConfigKey());
+        TransactionUtils.afterCommit(() -> refreshCache(newKey));
         return R.ok(true);
     }
 
@@ -104,22 +113,25 @@ public class SysConfigServiceImpl implements SysConfigService {
     @Transactional(rollbackFor = Exception.class)
     public R<Boolean> delete(List<Long> ids) {
         if (CollUtil.isEmpty(ids)) throw new BusinessException(ErrorCode.BAD_REQUEST);
+        List<String> cacheKeys = new ArrayList<>();
         for (Long id : ids) {
             SysConfig config = sysConfigMapper.selectById(id);
             if (config == null) continue;
             if (BUILTIN.equals(config.getConfigType())) {
                 throw new BusinessException(ErrorCode.CONFIG_BUILTIN);
             }
-            redisTemplate.delete(CacheConstants.CONFIG_KEY_PREFIX + config.getConfigKey());
+            cacheKeys.add(config.getConfigKey());
         }
         sysConfigMapper.deleteByIds(ids);
+        TransactionUtils.afterCommit(() -> cacheKeys.forEach(key ->
+                cacheService.delete(CacheConstants.CONFIG_KEY_PREFIX + key)));
         return R.ok(true);
     }
 
     @Override
     public String getValue(String key) {
         String cacheKey = CacheConstants.CONFIG_KEY_PREFIX + key;
-        Object cached = redisTemplate.opsForValue().get(cacheKey);
+        Object cached = cacheService.get(cacheKey);
         if (cached != null) {
             return cached.toString();
         }
@@ -188,7 +200,7 @@ public class SysConfigServiceImpl implements SysConfigService {
                 .eq(SysConfig::getConfigKey, key)
                 .last("LIMIT 1"));
         if (config == null) {
-            redisTemplate.delete(CacheConstants.CONFIG_KEY_PREFIX + key);
+            cacheService.delete(CacheConstants.CONFIG_KEY_PREFIX + key);
             return;
         }
         setCache(key, config.getConfigValue());
@@ -196,6 +208,6 @@ public class SysConfigServiceImpl implements SysConfigService {
 
     /** 写入 Redis 缓存 */
     private void setCache(String key, String value) {
-        redisTemplate.opsForValue().set(CacheConstants.CONFIG_KEY_PREFIX + key, value);
+        cacheService.set(CacheConstants.CONFIG_KEY_PREFIX + key, value);
     }
 }
