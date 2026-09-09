@@ -72,7 +72,9 @@ onMounted(fetch)
         <el-table-column type="index" label="#" width="50" />
         <el-table-column prop="module" label="模块" />
         <el-table-column prop="name" label="操作" />
-        <el-table-column prop="username" label="操作人" width="120" />
+        <el-table-column prop="username" label="操作人" width="120">
+          <template #default="{ row }">{{ row.username || '--' }}</template>
+        </el-table-column>
         <el-table-column prop="ip" label="IP" width="140" />
         <el-table-column label="状态" width="80">
           <template #default="{ row }">
@@ -80,7 +82,7 @@ onMounted(fetch)
           </template>
         </el-table-column>
         <el-table-column prop="costMs" label="耗时(ms)" width="100" />
-        <el-table-column prop="createTime" label="时间" width="170" />
+        <el-table-column prop="operTime" label="时间" width="170" />
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
             <el-button type="primary" link @click="onView(row)">详情</el-button>
@@ -104,13 +106,13 @@ onMounted(fetch)
       <el-descriptions :column="2" border>
         <el-descriptions-item label="模块">{{ detail?.module }}</el-descriptions-item>
         <el-descriptions-item label="操作">{{ detail?.name }}</el-descriptions-item>
-        <el-descriptions-item label="操作人">{{ detail?.username }}</el-descriptions-item>
+        <el-descriptions-item label="操作人">{{ detail?.username || '--' }}</el-descriptions-item>
         <el-descriptions-item label="IP">{{ detail?.ip }}</el-descriptions-item>
         <el-descriptions-item label="方法">{{ detail?.method }}</el-descriptions-item>
         <el-descriptions-item label="耗时(ms)">{{ detail?.costMs }}</el-descriptions-item>
-        <el-descriptions-item label="请求地址" :span="2">{{ detail?.url }}</el-descriptions-item>
-        <el-descriptions-item label="请求参数" :span="2"><pre>{{ detail?.reqParam }}</pre></el-descriptions-item>
-        <el-descriptions-item label="响应" :span="2"><pre>{{ detail?.resp }}</pre></el-descriptions-item>
+        <el-descriptions-item label="请求地址" :span="2">{{ detail?.requestUrl }}</el-descriptions-item>
+        <el-descriptions-item label="请求参数" :span="2"><pre style="white-space: pre-wrap; word-break: break-all; margin: 0;">{{ detail?.requestParam }}</pre></el-descriptions-item>
+        <el-descriptions-item label="响应" :span="2"><pre style="white-space: pre-wrap; word-break: break-all; margin: 0;">{{ detail?.responseResult }}</pre></el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>

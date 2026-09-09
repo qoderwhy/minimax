@@ -5,10 +5,10 @@ export interface LoginLogItem {
   username?: string
   ip?: string
   status: number
-  msg?: string
+  message?: string
   os?: string
   browser?: string
-  createTime?: string
+  loginTime?: string
 }
 
 export function pageLoginLog(params: {

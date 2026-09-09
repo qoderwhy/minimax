@@ -18,6 +18,7 @@ public record MenuSaveDTO(
         String icon,
         Integer sort,
         Integer visible,
+        Integer keepAlive,
         Integer status
 ) implements Serializable {
 }

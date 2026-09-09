@@ -53,7 +53,7 @@ CREATE TABLE `sys_user` (
   `sex` TINYINT NOT NULL DEFAULT 0 COMMENT '性别:0=未知 1=男 2=女',
   `dept_id` BIGINT NOT NULL DEFAULT 0 COMMENT '部门ID',
   `post_id` BIGINT NOT NULL DEFAULT 0 COMMENT '岗位ID',
-  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '状态:0=正常 1=停用',
+  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '状态:0=停用 1=正常',
   `login_ip` VARCHAR(50) NOT NULL DEFAULT '' COMMENT '最后登录IP',
   `login_date` DATETIME DEFAULT NULL COMMENT '最后登录时间',
   `remark` VARCHAR(500) NOT NULL DEFAULT '' COMMENT '备注',

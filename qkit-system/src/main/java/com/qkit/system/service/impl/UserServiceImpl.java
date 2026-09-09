@@ -126,7 +126,7 @@ public class UserServiceImpl implements UserService {
 
         User user = userConvert.toEntity(dto);
         user.setPassword(BCrypt.hashpw(dto.password()));
-        if (user.getStatus() == null) user.setStatus(0);
+        if (user.getStatus() == null) user.setStatus(1);
         userMapper.insert(user);
         return R.ok(user.getId());
     }

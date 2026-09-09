@@ -9,7 +9,7 @@ const tableRef = ref()
 const expandAll = ref(false)
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<MenuSave>({ id: undefined, parentId: 0, name: '', type: 1, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 0, keepAlive: 0 })
+const form = ref<MenuSave>({ id: undefined, parentId: 0, name: '', type: 'M', path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 1, keepAlive: 0 })
 const formRef = ref()
 
 async function fetch() {
@@ -23,13 +23,13 @@ async function fetch() {
 
 function onAdd() {
   dialogMode.value = 'add'
-  form.value = { id: undefined, parentId: 0, name: '', type: 1, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 0, keepAlive: 0 }
+  form.value = { id: undefined, parentId: 0, name: '', type: 'M', path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 1, keepAlive: 0 }
   dialogVisible.value = true
 }
 
 function onAddChild(parent: MenuItem) {
   dialogMode.value = 'add'
-  form.value = { id: undefined, parentId: parent.id, name: '', type: 2, path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 0, keepAlive: 0 }
+  form.value = { id: undefined, parentId: parent.id, name: '', type: 'C', path: '', component: '', perm: '', icon: '', sort: 0, status: 1, visible: 1, keepAlive: 0 }
   dialogVisible.value = true
 }
 
@@ -68,7 +68,7 @@ async function onDelete(row: MenuItem) {
   fetch()
 }
 
-const typeLabel = (t: number) => ['', '目录', '菜单', '按钮'][t] || '-'
+const typeLabel = (t: string) => ({ M: '目录', C: '菜单', F: '按钮' }[t] || '-')
 
 function collectAllRows(rows: MenuItem[], out: MenuItem[] = []) {
   for (const r of rows) {
@@ -125,24 +125,24 @@ onMounted(fetch)
         </el-form-item>
         <el-form-item label="类型">
           <el-radio-group v-model="form.type">
-            <el-radio :value="1">目录</el-radio>
-            <el-radio :value="2">菜单</el-radio>
-            <el-radio :value="3">按钮</el-radio>
+            <el-radio :value="'M'">目录</el-radio>
+            <el-radio :value="'C'">菜单</el-radio>
+            <el-radio :value="'F'">按钮</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item v-if="form.type !== 3" label="图标"><IconSelect v-model="form.icon" /></el-form-item>
-        <el-form-item v-if="form.type !== 3" label="路由"><el-input v-model="form.path" placeholder="如：user" /></el-form-item>
-        <el-form-item v-if="form.type === 2" label="组件"><el-input v-model="form.component" placeholder="如：system/user/index" /></el-form-item>
+        <el-form-item v-if="form.type !== 'F'" label="图标"><IconSelect v-model="form.icon" /></el-form-item>
+        <el-form-item v-if="form.type !== 'F'" label="路由"><el-input v-model="form.path" placeholder="如：user" /></el-form-item>
+        <el-form-item v-if="form.type === 'C'" label="组件"><el-input v-model="form.component" placeholder="如：system/user/index" /></el-form-item>
         <el-form-item label="权限标识"><el-input v-model="form.perm" placeholder="如：system:user:save" /></el-form-item>
         <el-form-item label="排序"><el-input-number v-model="form.sort" :min="0" /></el-form-item>
-        <el-form-item v-if="form.type === 2" label="显示">
+        <el-form-item v-if="form.type === 'C'" label="显示">
           <el-radio-group v-model="form.visible">
-            <el-radio :value="0">显示</el-radio>
-            <el-radio :value="1">隐藏</el-radio>
+            <el-radio :value="1">显示</el-radio>
+            <el-radio :value="0">隐藏</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item v-if="form.type === 2" label="缓存">
+        <el-form-item v-if="form.type === 'C'" label="缓存">
           <el-radio-group v-model="form.keepAlive">
             <el-radio :value="1">缓存</el-radio>
             <el-radio :value="0">不缓存</el-radio>

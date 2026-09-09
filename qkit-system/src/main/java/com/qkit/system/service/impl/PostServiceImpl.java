@@ -56,7 +56,7 @@ public class PostServiceImpl implements PostService {
     @Transactional(readOnly = true)
     public R<List<PostVO>> list() {
         List<Post> posts = postMapper.selectList(new LambdaQueryWrapper<Post>()
-                .eq(Post::getStatus, 0).orderByAsc(Post::getSort));
+                .eq(Post::getStatus, 1).orderByAsc(Post::getSort));
         return R.ok(posts.stream().map(this::toVOWithDept).toList());
     }
 
@@ -64,7 +64,7 @@ public class PostServiceImpl implements PostService {
     @Transactional(rollbackFor = Exception.class)
     public R<Long> create(PostSaveDTO dto) {
         Post post = postConvert.toEntity(dto);
-        if (post.getStatus() == null) post.setStatus(0);
+        if (post.getStatus() == null) post.setStatus(1);
         if (post.getSort() == null) post.setSort(0);
         postMapper.insert(post);
         return R.ok(post.getId());

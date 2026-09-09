@@ -27,7 +27,7 @@ public class OperLog {
     private String method;
     private String requestUrl;
     private String requestMethod;
-    private String requestParams;
+    private String requestParam;
     private String responseResult;
     private Integer status;
     private String errorMsg;

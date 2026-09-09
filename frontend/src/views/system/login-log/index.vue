@@ -48,8 +48,8 @@ onMounted(fetch)
         <el-form-item label="用户名"><el-input v-model="query.username" clearable /></el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" clearable placeholder="全部" style="width: 120px">
-            <el-option label="成功" :value="0" />
-            <el-option label="失败" :value="1" />
+            <el-option label="成功" :value="1" />
+            <el-option label="失败" :value="0" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -66,7 +66,7 @@ onMounted(fetch)
         <el-table-column prop="ip" label="IP" width="140" />
         <el-table-column label="状态" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.status === 0 ? 'success' : 'danger'">{{ row.status === 0 ? '成功' : '失败' }}</el-tag>
+            <el-tag :type="row.status === 1 ? 'success' : 'danger'">{{ row.status === 1 ? '成功' : '失败' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="message" label="消息" />

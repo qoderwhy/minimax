@@ -78,7 +78,8 @@ public class MenuServiceImpl implements MenuService {
         Menu menu = menuConvert.toEntity(dto);
         if (menu.getParentId() == null) menu.setParentId(0L);
         if (menu.getStatus() == null) menu.setStatus(1);
-        if (menu.getVisible() == null) menu.setVisible(0);
+        if (menu.getVisible() == null) menu.setVisible(1);
+        if (menu.getKeepAlive() == null) menu.setKeepAlive(0);
         menuMapper.insert(menu);
         return R.ok(menu.getId());
     }
@@ -117,7 +118,7 @@ public class MenuServiceImpl implements MenuService {
         for (Menu m : children) {
             List<RouteVO> sub = buildRoute(m.getId(), byParent);
             String component = m.getType().equals(MenuTypeEnum.DIR.getCode()) ? "Layout" : m.getComponent();
-            RouteMetaVO meta = new RouteMetaVO(m.getName(), m.getIcon(), m.getVisible() == 1, true, m.getPerm());
+            RouteMetaVO meta = new RouteMetaVO(m.getName(), m.getIcon(), m.getVisible() != 1, Integer.valueOf(1).equals(m.getKeepAlive()), m.getPerm());
             RouteVO vo = new RouteVO(m.getId(), capitalize(m.getPath()), m.getPath(), component, null, meta, sub);
             result.add(vo);
         }

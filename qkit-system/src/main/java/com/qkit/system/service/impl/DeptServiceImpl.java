@@ -51,7 +51,7 @@ public class DeptServiceImpl implements DeptService {
     @Transactional(readOnly = true)
     public R<List<DeptSimpleVO>> simpleList() {
         List<Dept> all = deptMapper.selectList(new LambdaQueryWrapper<Dept>()
-                .eq(Dept::getStatus, 0).orderByAsc(Dept::getSort));
+                .eq(Dept::getStatus, 1).orderByAsc(Dept::getSort));
         return R.ok(deptConvert.toSimpleVOList(all));
     }
 
@@ -65,7 +65,7 @@ public class DeptServiceImpl implements DeptService {
         dept.setLeader(dto.leader());
         dept.setPhone(dto.phone());
         dept.setEmail(dto.email());
-        dept.setStatus(dto.status() == null ? 0 : dto.status());
+        dept.setStatus(dto.status() == null ? 1 : dto.status());
         deptMapper.insert(dept);
         return R.ok(dept.getId());
     }

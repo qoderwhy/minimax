@@ -75,7 +75,7 @@ public class RoleServiceImpl implements RoleService {
         if (count > 0) throw new BusinessException(ErrorCode.ROLE_NOT_FOUND);
         Role role = roleConvert.toEntity(dto);
         if (role.getDataScope() == null) role.setDataScope(4);
-        if (role.getStatus() == null) role.setStatus(0);
+        if (role.getStatus() == null) role.setStatus(1);
         roleMapper.insert(role);
         return R.ok(role.getId());
     }

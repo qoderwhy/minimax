@@ -16,6 +16,7 @@ public record MenuVO(
         String icon,
         Integer sort,
         Integer visible,
+        Integer keepAlive,
         Integer status,
         List<MenuVO> children
 ) {

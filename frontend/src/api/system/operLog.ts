@@ -7,13 +7,16 @@ export interface OperLogItem {
   userId?: number
   username?: string
   ip?: string
-  status: number
-  costMs?: number
-  createTime?: string
+  userAgent?: string
   method?: string
-  url?: string
-  reqParam?: string
-  resp?: string
+  requestUrl?: string
+  requestMethod?: string
+  requestParam?: string
+  responseResult?: string
+  status: number
+  errorMsg?: string
+  costMs?: number
+  operTime?: string
 }
 
 export function pageOperLog(params: {

@@ -16,7 +16,7 @@ public record OperLogVO(
         String method,
         String requestUrl,
         String requestMethod,
-        String requestParams,
+        String requestParam,
         String responseResult,
         Integer status,
         String errorMsg,

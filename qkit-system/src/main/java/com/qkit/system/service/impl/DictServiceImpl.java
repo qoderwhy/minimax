@@ -69,7 +69,7 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
     @Transactional(rollbackFor = Exception.class)
     public R<Long> createDict(DictSaveDTO dto) {
         Dict dict = dictConvert.toEntity(dto);
-        if (dict.getStatus() == null) dict.setStatus(0);
+        if (dict.getStatus() == null) dict.setStatus(1);
         dictMapper.insert(dict);
         return R.ok(dict.getId());
     }
@@ -106,7 +106,7 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
     @Transactional(rollbackFor = Exception.class)
     public R<Long> createItem(DictItemSaveDTO dto) {
         DictItem item = dictItemConvert.toEntity(dto);
-        if (item.getStatus() == null) item.setStatus(0);
+        if (item.getStatus() == null) item.setStatus(1);
         if (item.getSort() == null) item.setSort(0);
         dictItemMapper.insert(item);
         TransactionUtils.afterCommit(() -> loadToCache(dto.dictType()));

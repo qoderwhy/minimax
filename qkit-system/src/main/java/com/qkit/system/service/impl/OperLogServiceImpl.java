@@ -59,7 +59,7 @@ public class OperLogServiceImpl implements OperLogService {
     private OperLogVO toVO(OperLog e) {
         return new OperLogVO(e.getId(), e.getModule(), e.getName(), e.getUserId(), e.getUsername(),
                 e.getIp(), e.getUserAgent(), e.getMethod(), e.getRequestUrl(), e.getRequestMethod(),
-                e.getRequestParams(), e.getResponseResult(), e.getStatus(), e.getErrorMsg(),
+                e.getRequestParam(), e.getResponseResult(), e.getStatus(), e.getErrorMsg(),
                 e.getCostMs(), e.getOperTime());
     }
 }

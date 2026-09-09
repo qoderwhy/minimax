@@ -7,6 +7,7 @@ import com.qkit.common.api.ErrorCode;
 import com.qkit.common.api.R;
 import com.qkit.common.cache.CacheService;
 import com.qkit.common.constant.CacheConstants;
+import com.qkit.common.constant.SecurityConstants;
 import com.qkit.common.exception.BusinessException;
 import com.qkit.framework.captcha.CaptchaUtil;
 import com.qkit.framework.ratelimit.LoginRateLimiter;
@@ -66,7 +67,7 @@ public class AuthServiceImpl implements AuthService {
         if (StrUtil.isNotBlank(dto.captchaId())) {
             String code = cacheService.get(CacheConstants.CAPTCHA_KEY_PREFIX + dto.captchaId());
             if (code == null || !code.equalsIgnoreCase(dto.captchaCode())) {
-                recordLoginLog(null, dto.username(), clientIp, 1, "验证码错误");
+                recordLoginLog(null, dto.username(), clientIp, 0, "验证码错误");
                 throw new BusinessException(ErrorCode.CAPTCHA_INVALID);
             }
             cacheService.delete(CacheConstants.CAPTCHA_KEY_PREFIX + dto.captchaId());
@@ -76,25 +77,25 @@ public class AuthServiceImpl implements AuthService {
         User user = userService.getByUsername(dto.username());
         if (user == null) {
             loginRateLimiter.onLoginFail(dto.username());
-            recordLoginLog(null, dto.username(), clientIp, 1, "用户不存在");
+            recordLoginLog(null, dto.username(), clientIp, 0, "用户不存在");
             throw new BusinessException(ErrorCode.USERNAME_OR_PASSWORD_ERROR);
         }
-        if (user.getStatus() != null && user.getStatus() == 1) {
-            recordLoginLog(user.getId(), dto.username(), clientIp, 1, "用户已停用");
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            recordLoginLog(user.getId(), dto.username(), clientIp, 0, "用户已停用");
             throw new BusinessException(ErrorCode.USER_DISABLED);
         }
         if (!BCrypt.checkpw(dto.password(), user.getPassword())) {
             loginRateLimiter.onLoginFail(dto.username());
-            recordLoginLog(user.getId(), dto.username(), clientIp, 1, "密码错误");
+            recordLoginLog(user.getId(), dto.username(), clientIp, 0, "密码错误");
             throw new BusinessException(ErrorCode.USERNAME_OR_PASSWORD_ERROR);
         }
 
         // 4. 登录成功
         loginRateLimiter.onLoginSuccess(dto.username());
         StpUtil.login(user.getId());
-        StpUtil.getSessionByLoginId(user.getId()).set("username", user.getUsername());
+        StpUtil.getSessionByLoginId(user.getId()).set(SecurityConstants.SESSION_USERNAME, user.getUsername());
         userService.updateLoginInfo(user.getId(), clientIp);
-        recordLoginLog(user.getId(), dto.username(), clientIp, 0, "登录成功");
+        recordLoginLog(user.getId(), dto.username(), clientIp, 1, "登录成功");
 
         return R.ok(new LoginVO(StpUtil.getTokenValue(), user.getId(), user.getUsername(), user.getNickname()));
     }
@@ -123,7 +124,7 @@ public class AuthServiceImpl implements AuthService {
 
     private String currentUsername() {
         // 通过缓存或查询
-        return StpUtil.getSessionByLoginId(StpUtil.getLoginIdAsLong()).getString("username");
+        return StpUtil.getSessionByLoginId(StpUtil.getLoginIdAsLong()).getString(SecurityConstants.SESSION_USERNAME);
     }
 
     private void recordLoginLog(Long userId, String username, String ip, int status, String message) {

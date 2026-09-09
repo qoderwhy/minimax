@@ -4,7 +4,7 @@ export interface MenuItem {
   id: number
   parentId: number
   name: string
-  type: number
+  type: string
   path?: string
   component?: string
   perm?: string
@@ -20,7 +20,7 @@ export interface MenuSave {
   id?: number
   parentId: number
   name: string
-  type: number
+  type: string
   path?: string
   component?: string
   perm?: string

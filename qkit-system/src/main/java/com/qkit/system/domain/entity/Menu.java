@@ -27,6 +27,7 @@ public class Menu extends BaseEntity {
     private String icon;
     private Integer sort;
     private Integer visible;
+    private Integer keepAlive;
     private Integer status;
 
     @TableLogic

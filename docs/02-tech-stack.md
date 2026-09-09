@@ -134,7 +134,7 @@
 | D-mini-12 | UI 库 | **Element Plus 2.8.x** | 与兄弟项目对齐 |
 | D-mini-13 | Service 分层 | Controller → Service → Manager(可选) → Mapper | 单表 CRUD 不引入 Manager；跨表/跨服务编排才用 Manager 封装，Service 暴露业务 API |
 | D-mini-14 | 数据权限 | **5 级**：全部 / 本部门及下级 / 本部门 / 仅本人 / 自定义 | 默认值 1（全部） |
-| D-mini-15 | 操作日志 | `@OperLog(module="用户管理", name="新增用户")` 注解 + AOP 自动记录 | 零侵入；注解参数必须**双参**，对应 `sys_oper_log.module / name` |
+| D-mini-15 | 操作日志 | `@OperLog(module="用户管理", name="新增用户")` 注解 + AOP 自动记录，经 SPI（`OperLogSink`）异步写入 `sys_oper_log` | 零侵入；注解参数必须**双参**，对应 `sys_oper_log.module / name`；密码等敏感字段自动脱敏 |
 | D-mini-16 | 登录安全 | BCrypt + 5 次失败锁定 10 分钟 + 图形验证码 | Sa-Token 限流 + 自定义 |
 | D-mini-17 | 静态资源 | 前端 `pnpm build` 产物由 Spring Boot 静态托管 `classpath:/static/` | 单 jar 部署 |
 
