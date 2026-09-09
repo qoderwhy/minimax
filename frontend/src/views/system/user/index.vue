@@ -18,7 +18,7 @@ const postList = ref<PostItem[]>([])
 
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<UserSave>({ id: undefined, username: '', nickname: '', password: '', mobile: '', email: '', status: 1, deptId: undefined, roleIds: [], postIds: [] })
+const form = ref<UserSave>({ id: undefined, username: '', nickname: '', password: '', mobile: '', email: '', status: 1, deptId: undefined, postId: undefined, roleIds: [] })
 const formRef = ref()
 
 const formRules = computed(() => ({
@@ -63,7 +63,7 @@ async function loadOptions() {
 
 function onAdd() {
   dialogMode.value = 'add'
-  form.value = { id: undefined, username: '', nickname: '', password: '', mobile: '', email: '', status: 1, deptId: undefined, roleIds: [], postIds: [] }
+  form.value = { id: undefined, username: '', nickname: '', password: '', mobile: '', email: '', status: 1, deptId: undefined, postId: undefined, roleIds: [] }
   dialogVisible.value = true
 }
 
@@ -78,8 +78,8 @@ async function onEdit(row: UserItem) {
     email: row.email || '',
     status: row.status,
     deptId: row.deptId,
-    roleIds: [],
-    postIds: []
+    postId: row.postId,
+    roleIds: []
   }
   dialogVisible.value = true
 }
@@ -173,6 +173,7 @@ onMounted(() => {
         <el-table-column prop="mobile" label="手机号" />
         <el-table-column prop="email" label="邮箱" />
         <el-table-column prop="deptName" label="部门" />
+        <el-table-column prop="postName" label="岗位" />
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-switch v-model="row.status" :active-value="1" :inactive-value="0" @change="onStatusChange(row as UserItem)" />
@@ -221,7 +222,7 @@ onMounted(() => {
           </el-select>
         </el-form-item>
         <el-form-item label="岗位">
-          <el-select v-model="form.postIds" multiple style="width: 100%">
+          <el-select v-model="form.postId" clearable style="width: 100%">
             <el-option v-for="p in postList" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </el-form-item>

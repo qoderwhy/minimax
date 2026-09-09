@@ -9,6 +9,8 @@ export interface UserItem {
   status: number
   deptId?: number
   deptName?: string
+  postId?: number
+  postName?: string
   createTime?: string
 }
 
@@ -21,8 +23,8 @@ export interface UserSave {
   email?: string
   status: number
   deptId?: number
+  postId?: number
   roleIds: number[]
-  postIds?: number[]
 }
 
 export interface UserQuery {

@@ -30,5 +30,5 @@ export function deleteLoginLog(id: number) {
 }
 
 export function cleanLoginLog() {
-  return request.delete<void>({ url: '/admin-api/system/login-log/delete', data: [] })
+  return request.delete<void>({ url: '/admin-api/system/login-log/clean' })
 }

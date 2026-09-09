@@ -56,6 +56,13 @@ public class OperLogServiceImpl implements OperLogService {
         return R.ok(true);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public R<Boolean> clean() {
+        operLogMapper.delete(new LambdaQueryWrapper<OperLog>().isNotNull(OperLog::getId));
+        return R.ok(true);
+    }
+
     private OperLogVO toVO(OperLog e) {
         return new OperLogVO(e.getId(), e.getModule(), e.getName(), e.getUserId(), e.getUsername(),
                 e.getIp(), e.getUserAgent(), e.getMethod(), e.getRequestUrl(), e.getRequestMethod(),

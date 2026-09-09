@@ -48,6 +48,13 @@ public class LoginLogServiceImpl implements LoginLogService {
         return R.ok(true);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public R<Boolean> clean() {
+        loginLogMapper.delete(new LambdaQueryWrapper<LoginLog>().isNotNull(LoginLog::getId));
+        return R.ok(true);
+    }
+
     private LoginLogVO toVO(LoginLog e) {
         return new LoginLogVO(e.getId(), e.getUserId(), e.getUsername(),
                 e.getIp(), e.getUserAgent(), e.getStatus(), e.getMessage(), e.getLoginTime());

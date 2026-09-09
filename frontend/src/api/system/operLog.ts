@@ -39,5 +39,5 @@ export function deleteOperLog(id: number) {
 }
 
 export function cleanOperLog() {
-  return request.delete<void>({ url: '/admin-api/system/oper-log/delete', data: [] })
+  return request.delete<void>({ url: '/admin-api/system/oper-log/clean' })
 }

@@ -10,4 +10,6 @@ public interface LoginLogService {
     R<List<LoginLogVO>> page(LoginLogQueryDTO query);
 
     R<Boolean> delete(List<Long> ids);
+
+    R<Boolean> clean();
 }

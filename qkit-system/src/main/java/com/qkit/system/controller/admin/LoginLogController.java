@@ -42,4 +42,12 @@ public class LoginLogController {
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return loginLogService.delete(ids);
     }
+
+    @Operation(summary = "清空登录日志")
+    @DeleteMapping("/clean")
+    @SaCheckPermission("system:login-log:delete")
+    @OperLog(module = "登录日志", name = "清空登录日志")
+    public R<Boolean> clean() {
+        return loginLogService.clean();
+    }
 }

@@ -27,9 +27,9 @@ export function listPost() {
 }
 
 export function savePost(data: PostSave) {
-  return data.id ? request.put<void>({ url: '/admin-api/system/post', data }) : request.post<void>({ url: '/admin-api/system/post', data })
+  return data.id ? request.put<void>({ url: '/admin-api/system/post/update', data }) : request.post<void>({ url: '/admin-api/system/post/create', data })
 }
 
 export function deletePost(id: number) {
-  return request.delete<void>({ url: `/admin-api/system/post/${id}` })
+  return request.delete<void>({ url: '/admin-api/system/post/delete', data: [id] })
 }

@@ -42,4 +42,12 @@ public class OperLogController {
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return operLogService.delete(ids);
     }
+
+    @Operation(summary = "清空操作日志")
+    @DeleteMapping("/clean")
+    @SaCheckPermission("system:oper-log:delete")
+    @OperLog(module = "操作日志", name = "清空操作日志")
+    public R<Boolean> clean() {
+        return operLogService.clean();
+    }
 }

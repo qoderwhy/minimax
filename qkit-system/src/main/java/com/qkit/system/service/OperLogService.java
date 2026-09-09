@@ -13,4 +13,6 @@ public interface OperLogService {
     void asyncSave(com.qkit.system.domain.entity.OperLog entity);
 
     R<Boolean> delete(List<Long> ids);
+
+    R<Boolean> clean();
 }
