@@ -39,8 +39,8 @@ public class AuthController {
 
     @Operation(summary = "登出")
     @PostMapping("/logout")
-    public R<Void> logout() {
-        return authService.logout();
+    public R<Void> logout(HttpServletRequest request) {
+        return authService.logout(WebUtil.getClientIp(request));
     }
 
     @Operation(summary = "当前登录用户信息")

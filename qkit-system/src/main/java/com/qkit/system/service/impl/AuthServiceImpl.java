@@ -14,25 +14,20 @@ import com.qkit.framework.ratelimit.LoginRateLimiter;
 import com.qkit.system.service.PermissionService;
 import com.qkit.system.convert.UserConvert;
 import com.qkit.system.domain.dto.LoginDTO;
-import com.qkit.system.domain.entity.LoginLog;
 import com.qkit.system.domain.entity.User;
 import com.qkit.system.domain.vo.CaptchaVO;
 import com.qkit.system.domain.vo.LoginUserVO;
 import com.qkit.system.domain.vo.LoginVO;
-import com.qkit.system.mapper.LoginLogMapper;
+import com.qkit.system.log.LoginLogRecorder;
 import com.qkit.system.service.AuthService;
 import com.qkit.system.service.UserService;
 import com.qkit.system.enums.DataScopeEnum;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -44,7 +39,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserService userService;
     private final LoginRateLimiter loginRateLimiter;
     private final PermissionService permissionService;
-    private final LoginLogMapper loginLogMapper;
+    private final LoginLogRecorder loginLogRecorder;
     private final UserConvert userConvert;
 
     @Override
@@ -67,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
         if (StrUtil.isNotBlank(dto.captchaId())) {
             String code = cacheService.get(CacheConstants.CAPTCHA_KEY_PREFIX + dto.captchaId());
             if (code == null || !code.equalsIgnoreCase(dto.captchaCode())) {
-                recordLoginLog(null, dto.username(), clientIp, 0, "验证码错误");
+                loginLogRecorder.record(null, dto.username(), clientIp, 0, "验证码错误");
                 throw new BusinessException(ErrorCode.CAPTCHA_INVALID);
             }
             cacheService.delete(CacheConstants.CAPTCHA_KEY_PREFIX + dto.captchaId());
@@ -77,16 +72,16 @@ public class AuthServiceImpl implements AuthService {
         User user = userService.getByUsername(dto.username());
         if (user == null) {
             loginRateLimiter.onLoginFail(dto.username());
-            recordLoginLog(null, dto.username(), clientIp, 0, "用户不存在");
+            loginLogRecorder.record(null, dto.username(), clientIp, 0, "用户不存在");
             throw new BusinessException(ErrorCode.USERNAME_OR_PASSWORD_ERROR);
         }
         if (user.getStatus() != null && user.getStatus() == 0) {
-            recordLoginLog(user.getId(), dto.username(), clientIp, 0, "用户已停用");
+            loginLogRecorder.record(user.getId(), dto.username(), clientIp, 0, "用户已停用");
             throw new BusinessException(ErrorCode.USER_DISABLED);
         }
         if (!BCrypt.checkpw(dto.password(), user.getPassword())) {
             loginRateLimiter.onLoginFail(dto.username());
-            recordLoginLog(user.getId(), dto.username(), clientIp, 0, "密码错误");
+            loginLogRecorder.record(user.getId(), dto.username(), clientIp, 0, "密码错误");
             throw new BusinessException(ErrorCode.USERNAME_OR_PASSWORD_ERROR);
         }
 
@@ -95,15 +90,18 @@ public class AuthServiceImpl implements AuthService {
         StpUtil.login(user.getId());
         StpUtil.getSessionByLoginId(user.getId()).set(SecurityConstants.SESSION_USERNAME, user.getUsername());
         userService.updateLoginInfo(user.getId(), clientIp);
-        recordLoginLog(user.getId(), dto.username(), clientIp, 1, "登录成功");
+        loginLogRecorder.record(user.getId(), dto.username(), clientIp, 1, "登录成功");
 
         return R.ok(new LoginVO(StpUtil.getTokenValue(), user.getId(), user.getUsername(), user.getNickname()));
     }
 
     @Override
-    public R<Void> logout() {
+    public R<Void> logout(String clientIp) {
         try {
+            Long userId = StpUtil.getLoginIdAsLong();
+            String username = StpUtil.getSessionByLoginId(userId).getString(SecurityConstants.SESSION_USERNAME);
             StpUtil.logout();
+            loginLogRecorder.record(userId, username, clientIp, 1, "退出登录");
         } catch (Exception ignored) {
         }
         return R.ok();
@@ -125,33 +123,5 @@ public class AuthServiceImpl implements AuthService {
     private String currentUsername() {
         // 通过缓存或查询
         return StpUtil.getSessionByLoginId(StpUtil.getLoginIdAsLong()).getString(SecurityConstants.SESSION_USERNAME);
-    }
-
-    private void recordLoginLog(Long userId, String username, String ip, int status, String message) {
-        try {
-            LoginLog log = new LoginLog();
-            log.setUserId(userId);
-            log.setUsername(username);
-            log.setIp(ip);
-            log.setStatus(status);
-            log.setMessage(message);
-            log.setLoginTime(LocalDateTime.now());
-            HttpServletRequest req = currentRequest();
-            if (req != null) {
-                log.setUserAgent(req.getHeader("User-Agent"));
-            }
-            loginLogMapper.insert(log);
-        } catch (Exception e) {
-            log.warn("记录登录日志失败", e);
-        }
-    }
-
-    private HttpServletRequest currentRequest() {
-        try {
-            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            return attrs == null ? null : attrs.getRequest();
-        } catch (Exception e) {
-            return null;
-        }
     }
 }

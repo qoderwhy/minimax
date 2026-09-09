@@ -12,7 +12,7 @@ public interface AuthService {
 
     R<LoginVO> login(LoginDTO dto, String clientIp);
 
-    R<Void> logout();
+    R<Void> logout(String clientIp);
 
     R<LoginUserVO> me();
 }
