@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qkit.common.api.ErrorCode;
 import com.qkit.common.api.R;
 import com.qkit.common.exception.BusinessException;
+import com.qkit.framework.security.annotation.DataScope;
 import com.qkit.system.domain.dto.OperLogQueryDTO;
 import com.qkit.system.domain.entity.OperLog;
 import com.qkit.system.domain.vo.OperLogVO;
@@ -28,6 +29,7 @@ public class OperLogServiceImpl implements OperLogService {
 
     @Override
     @Transactional(readOnly = true)
+    @DataScope(table = "sys_oper_log", userColumn = "user_id")
     public R<List<OperLogVO>> page(OperLogQueryDTO query) {
         Page<OperLog> page = Page.of(
                 query.pageNum() == null ? 1 : query.pageNum(),

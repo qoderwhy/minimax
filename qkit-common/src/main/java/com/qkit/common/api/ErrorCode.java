@@ -26,6 +26,7 @@ public enum ErrorCode {
 
     ROLE_NOT_FOUND(11001, "角色不存在"),
     ROLE_IN_USE(11002, "角色已分配用户，无法删除"),
+    ROLE_SYSTEM_PROTECTED(11003, "系统内置角色，不允许操作"),
 
     MENU_HAS_CHILDREN(12001, "存在子菜单，无法删除"),
     DEPT_HAS_CHILDREN(13001, "存在子部门，无法删除"),

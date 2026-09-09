@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
+import java.util.List;
 
 public record RoleSaveDTO(
         @NotNull(message = "ID不能为空", groups = UpdateGroup.class) Long id,
@@ -14,6 +15,7 @@ public record RoleSaveDTO(
         Integer dataScope,
         Integer sort,
         Integer status,
-        String remark
+        String remark,
+        List<Long> deptIds
 ) implements Serializable {
 }

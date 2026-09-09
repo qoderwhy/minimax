@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qkit.common.api.ErrorCode;
 import com.qkit.common.api.R;
 import com.qkit.common.exception.BusinessException;
+import com.qkit.framework.security.annotation.DataScope;
 import com.qkit.system.domain.dto.LoginLogQueryDTO;
 import com.qkit.system.domain.entity.LoginLog;
 import com.qkit.system.domain.vo.LoginLogVO;
@@ -27,6 +28,7 @@ public class LoginLogServiceImpl implements LoginLogService {
 
     @Override
     @Transactional(readOnly = true)
+    @DataScope(table = "sys_login_log", userColumn = "user_id")
     public R<List<LoginLogVO>> page(LoginLogQueryDTO query) {
         Page<LoginLog> page = Page.of(
                 query.pageNum() == null ? 1 : query.pageNum(),

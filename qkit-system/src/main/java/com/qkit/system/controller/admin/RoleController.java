@@ -86,4 +86,20 @@ public class RoleController {
     public R<Boolean> assignMenu(@RequestParam Long roleId, @RequestBody List<Long> menuIds) {
         return roleService.assignMenu(roleId, menuIds);
     }
+
+    @Operation(summary = "查询角色已分配部门")
+    @GetMapping("/dept-ids")
+    @SaCheckPermission("system:role:assign-dept")
+    public R<List<Long>> getDeptIds(@RequestParam Long roleId) {
+        return roleService.getDeptIds(roleId);
+    }
+
+    @Operation(summary = "分配部门")
+    @PutMapping("/assign-dept")
+    @SaCheckPermission("system:role:assign-dept")
+    @OperLog(module = "角色管理", name = "分配部门")
+    @RepeatSubmit
+    public R<Boolean> assignDept(@RequestParam Long roleId, @RequestBody List<Long> deptIds) {
+        return roleService.assignDept(roleId, deptIds);
+    }
 }

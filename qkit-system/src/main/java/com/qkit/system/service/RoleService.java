@@ -22,4 +22,8 @@ public interface RoleService {
     R<Boolean> delete(List<Long> ids);
 
     R<Boolean> assignMenu(Long roleId, List<Long> menuIds);
+
+    R<List<Long>> getDeptIds(Long roleId);
+
+    R<Boolean> assignDept(Long roleId, List<Long> deptIds);
 }

@@ -52,3 +52,11 @@ export function saveRole(data: RoleSave) {
 export function deleteRole(id: number) {
   return request.delete<void>({ url: '/admin-api/system/role/delete', data: [id] })
 }
+
+export function getRoleDeptIds(roleId: number) {
+  return request.get<number[]>({ url: '/admin-api/system/role/dept-ids', params: { roleId } })
+}
+
+export function assignRoleDept(roleId: number, deptIds: number[]) {
+  return request.put<void>({ url: '/admin-api/system/role/assign-dept', params: { roleId }, data: deptIds })
+}

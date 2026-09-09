@@ -12,10 +12,13 @@ import com.qkit.system.convert.RoleConvert;
 import com.qkit.system.domain.dto.RoleQueryDTO;
 import com.qkit.system.domain.dto.RoleSaveDTO;
 import com.qkit.system.domain.entity.Role;
+import com.qkit.system.domain.entity.RoleDept;
 import com.qkit.system.domain.entity.UserRole;
 import com.qkit.system.domain.vo.RoleVO;
+import com.qkit.system.mapper.RoleDeptMapper;
 import com.qkit.system.mapper.RoleMapper;
 import com.qkit.system.mapper.UserRoleMapper;
+import com.qkit.system.service.PermissionService;
 import com.qkit.system.service.RoleMenuService;
 import com.qkit.system.service.RoleService;
 import lombok.RequiredArgsConstructor;
@@ -32,8 +35,10 @@ public class RoleServiceImpl implements RoleService {
 
     private final RoleMapper roleMapper;
     private final UserRoleMapper userRoleMapper;
+    private final RoleDeptMapper roleDeptMapper;
     private final RoleMenuService roleMenuService;
     private final RoleConvert roleConvert;
+    private final PermissionService permissionService;
 
     @Override
     @Transactional(readOnly = true)
@@ -64,7 +69,13 @@ public class RoleServiceImpl implements RoleService {
     public R<RoleVO> detail(Long id) {
         Role role = roleMapper.selectById(id);
         if (role == null) throw new BusinessException(ErrorCode.ROLE_NOT_FOUND);
-        return R.ok(roleConvert.toVO(role));
+        RoleVO vo = roleConvert.toVO(role);
+        List<Long> deptIds = roleDeptMapper.selectList(
+                        new LambdaQueryWrapper<RoleDept>().eq(RoleDept::getRoleId, id))
+                .stream().map(RoleDept::getDeptId).toList();
+        return R.ok(new RoleVO(
+                vo.id(), vo.name(), vo.code(), vo.dataScope(), vo.dataScopeLabel(),
+                vo.sort(), vo.status(), vo.remark(), vo.createTime(), deptIds));
     }
 
     @Override
@@ -73,10 +84,12 @@ public class RoleServiceImpl implements RoleService {
         Long count = roleMapper.selectCount(new LambdaQueryWrapper<Role>()
                 .eq(Role::getCode, dto.code()));
         if (count > 0) throw new BusinessException(ErrorCode.ROLE_NOT_FOUND);
+        if ("admin".equals(dto.code())) throw new BusinessException(ErrorCode.ROLE_SYSTEM_PROTECTED);
         Role role = roleConvert.toEntity(dto);
-        if (role.getDataScope() == null) role.setDataScope(4);
+        if (role.getDataScope() == null) role.setDataScope(2);
         if (role.getStatus() == null) role.setStatus(1);
         roleMapper.insert(role);
+        saveRoleDepts(role.getId(), dto.deptIds());
         return R.ok(role.getId());
     }
 
@@ -85,9 +98,11 @@ public class RoleServiceImpl implements RoleService {
     public R<Boolean> update(RoleSaveDTO dto) {
         Role exist = roleMapper.selectById(dto.id());
         if (exist == null) throw new BusinessException(ErrorCode.ROLE_NOT_FOUND);
+        if ("admin".equals(exist.getCode())) throw new BusinessException(ErrorCode.ROLE_SYSTEM_PROTECTED);
         Role update = roleConvert.toEntity(dto);
         roleMapper.updateById(update);
-        clearPermCache();
+        saveRoleDepts(dto.id(), dto.deptIds());
+        clearPermCache(dto.id());
         return R.ok(true);
     }
 
@@ -95,10 +110,14 @@ public class RoleServiceImpl implements RoleService {
     @Transactional(rollbackFor = Exception.class)
     public R<Boolean> delete(List<Long> ids) {
         if (CollUtil.isEmpty(ids)) throw new BusinessException(ErrorCode.BAD_REQUEST);
+        for (Long id : ids) {
+            Role role = roleMapper.selectById(id);
+            if (role != null && "admin".equals(role.getCode())) throw new BusinessException(ErrorCode.ROLE_SYSTEM_PROTECTED);
+        }
         Long usedCount = userRoleMapper.selectCount(new LambdaQueryWrapper<UserRole>().in(UserRole::getRoleId, ids));
         if (usedCount > 0) throw new BusinessException(ErrorCode.ROLE_IN_USE);
         roleMapper.deleteBatchIds(ids);
-        clearPermCache();
+        for (Long id : ids) clearPermCache(id);
         return R.ok(true);
     }
 
@@ -106,11 +125,43 @@ public class RoleServiceImpl implements RoleService {
     @Transactional(rollbackFor = Exception.class)
     public R<Boolean> assignMenu(Long roleId, List<Long> menuIds) {
         roleMenuService.saveByRoleId(roleId, menuIds);
-        clearPermCache();
+        clearPermCache(roleId);
         return R.ok(true);
     }
 
-    private void clearPermCache() {
-        // 简化：实际项目应查询该角色下的所有用户并逐个清理 perm:* 缓存
+    private void clearPermCache(Long roleId) {
+        List<Long> userIds = userRoleMapper.selectList(
+                new LambdaQueryWrapper<UserRole>().eq(UserRole::getRoleId, roleId))
+                .stream().map(UserRole::getUserId).toList();
+        userIds.forEach(permissionService::clearUserPermissionCache);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public R<List<Long>> getDeptIds(Long roleId) {
+        List<Long> deptIds = roleDeptMapper.selectList(
+                new LambdaQueryWrapper<RoleDept>().eq(RoleDept::getRoleId, roleId))
+                .stream().map(RoleDept::getDeptId).toList();
+        return R.ok(deptIds);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public R<Boolean> assignDept(Long roleId, List<Long> deptIds) {
+        saveRoleDepts(roleId, deptIds);
+        clearPermCache(roleId);
+        return R.ok(true);
+    }
+
+    private void saveRoleDepts(Long roleId, List<Long> deptIds) {
+        if (roleId == null) return;
+        roleDeptMapper.delete(new LambdaQueryWrapper<RoleDept>().eq(RoleDept::getRoleId, roleId));
+        if (deptIds == null || deptIds.isEmpty()) return;
+        deptIds.stream().distinct().forEach(deptId -> {
+            RoleDept rd = new RoleDept();
+            rd.setRoleId(roleId);
+            rd.setDeptId(deptId);
+            roleDeptMapper.insert(rd);
+        });
     }
 }

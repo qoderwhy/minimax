@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
-import { pageRole, saveRole, deleteRole, type RoleItem, type RoleSave, type RoleQuery } from '@/api/system/role'
+import { pageRole, saveRole, deleteRole, getRoleDeptIds, assignRoleDept, type RoleItem, type RoleSave, type RoleQuery } from '@/api/system/role'
+import { listDept } from '@/api/system/dept'
 
 const query = reactive<RoleQuery>({ pageNum: 1, pageSize: 10, name: '', code: '', status: undefined })
 const list = ref<RoleItem[]>([])
 const total = ref(0)
 const loading = ref(false)
+const deptTree = ref<any[]>([])
 
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
@@ -39,23 +41,39 @@ function onReset() {
 
 function onAdd() {
   dialogMode.value = 'add'
-  form.value = { id: undefined, name: '', code: '', status: 1, dataScope: 1, sort: 0, remark: '', menuIds: [] }
+  form.value = { id: undefined, name: '', code: '', status: 1, dataScope: 2, sort: 0, remark: '', menuIds: [], deptIds: [] }
   dialogVisible.value = true
 }
 
 function onEdit(row: RoleItem) {
   dialogMode.value = 'edit'
   form.value = {
-    id: row.id,
-    name: row.name,
-    code: row.code,
-    status: row.status,
-    dataScope: row.dataScope,
-    sort: row.sort,
-    remark: row.remark || '',
-    menuIds: []
+    id: row.id, name: row.name, code: row.code, status: row.status,
+    dataScope: row.dataScope, sort: row.sort, remark: row.remark || '',
+    menuIds: [], deptIds: []
   }
   dialogVisible.value = true
+  loadDeptTree().then(() => {
+    if (row.dataScope === 5) getRoleDeptIds(row.id).then(ids => { form.value.deptIds = ids })
+  })
+}
+
+async function loadDeptTree() {
+  try {
+    const items = await listDept()
+    const map = new Map<number, any>()
+    items.forEach(d => map.set(d.id, { ...d, children: [] as any[] }))
+    const roots: any[] = []
+    map.forEach((node, id) => {
+      const parent = map.get(node.parentId)
+      if (parent) (parent.children || (parent.children = [])).push(node)
+      else roots.push(node)
+    })
+    deptTree.value = roots
+  } catch (e) {
+    console.warn('加载部门树失败', e)
+    deptTree.value = []
+  }
 }
 
 async function onSave() {
@@ -74,7 +92,7 @@ async function onDelete(row: RoleItem) {
   fetch()
 }
 
-onMounted(fetch)
+onMounted(() => { fetch(); loadDeptTree() })
 </script>
 
 <template>
@@ -156,6 +174,9 @@ onMounted(fetch)
           </el-radio-group>
         </el-form-item>
         <el-form-item label="备注"><el-input v-model="form.remark" type="textarea" /></el-form-item>
+        <el-form-item label="部门" v-if="form.dataScope===5" v-permission="'system:role:assign-dept'">
+          <el-tree :data="deptTree" show-checkbox node-key="id" :props="{label:'name',children:'children'}" v-model="form.deptIds" default-expand-all />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>

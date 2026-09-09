@@ -1,6 +1,7 @@
 package com.qkit.system.service.impl;
 
 import cn.dev33.satoken.secure.BCrypt;
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.excel.EasyExcel;
@@ -10,6 +11,7 @@ import com.qkit.common.api.ErrorCode;
 import com.qkit.common.api.R;
 import com.qkit.common.exception.BusinessException;
 import com.qkit.common.exception.SystemException;
+import com.qkit.framework.security.annotation.DataScope;
 import com.qkit.system.convert.UserConvert;
 import com.qkit.system.domain.dto.PasswordDTO;
 import com.qkit.system.domain.dto.UserProfileUpdateDTO;
@@ -51,6 +53,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    @DataScope(table = "sys_user", deptColumn = "dept_id", userColumn = "create_by")
     public R<List<UserVO>> page(UserQueryDTO query) {
         Page<User> page = Page.of(
                 query.pageNum() == null ? 1 : query.pageNum(),
@@ -68,6 +71,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    @DataScope(table = "sys_user", deptColumn = "dept_id", userColumn = "create_by")
     public void export(UserQueryDTO query, HttpServletResponse response) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
                 .like(StrUtil.isNotBlank(query.username()), User::getUsername, query.username())

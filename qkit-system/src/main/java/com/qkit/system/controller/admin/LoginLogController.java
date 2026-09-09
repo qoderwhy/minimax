@@ -45,7 +45,7 @@ public class LoginLogController {
 
     @Operation(summary = "清空登录日志")
     @DeleteMapping("/clean")
-    @SaCheckPermission("system:login-log:delete")
+    @SaCheckPermission("system:login-log:clean")
     @OperLog(module = "登录日志", name = "清空登录日志")
     public R<Boolean> clean() {
         return loginLogService.clean();

@@ -1,10 +1,12 @@
 package com.qkit.system.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qkit.common.api.ErrorCode;
 import com.qkit.common.api.R;
 import com.qkit.common.exception.BusinessException;
+import com.qkit.framework.security.annotation.DataScope;
 import com.qkit.system.convert.DeptConvert;
 import com.qkit.system.domain.dto.DeptSaveDTO;
 import com.qkit.system.domain.entity.Dept;
@@ -22,8 +24,10 @@ import org.springframework.validation.annotation.Validated;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,24 +38,32 @@ public class DeptServiceImpl implements DeptService {
     private final DeptMapper deptMapper;
     private final UserMapper userMapper;
     private final DeptConvert deptConvert;
+    private final DataScopeHelper dataScopeHelper;
 
     @Override
     @Transactional(readOnly = true)
     public R<List<DeptTreeVO>> tree(String name) {
+        Long userId = StpUtil.getLoginIdAsLong();
         LambdaQueryWrapper<Dept> wrapper = new LambdaQueryWrapper<Dept>()
                 .like(name != null && !name.isBlank(), Dept::getName, name)
                 .orderByAsc(Dept::getSort);
         List<Dept> all = deptMapper.selectList(wrapper);
         Map<Long, List<Dept>> byParent = all.stream()
                 .collect(Collectors.groupingBy(d -> d.getParentId() == null ? 0L : d.getParentId()));
-        return R.ok(buildTree(0L, byParent));
+        List<DeptTreeVO> fullTree = buildTree(0L, byParent);
+        List<Long> visibleIds = dataScopeHelper.visibleDeptIds(userId);
+        Set<Long> visible = visibleIds != null ? new HashSet<>(visibleIds) : null;
+        List<DeptTreeVO> filtered = visible != null ? filterTree(fullTree, visible) : fullTree;
+        return R.ok(filtered);
     }
 
     @Override
     @Transactional(readOnly = true)
+    @DataScope(table = "sys_dept", deptColumn = "id")
     public R<List<DeptSimpleVO>> simpleList() {
-        List<Dept> all = deptMapper.selectList(new LambdaQueryWrapper<Dept>()
-                .eq(Dept::getStatus, 1).orderByAsc(Dept::getSort));
+        LambdaQueryWrapper<Dept> wrapper = new LambdaQueryWrapper<Dept>()
+                .eq(Dept::getStatus, 1).orderByAsc(Dept::getSort);
+        List<Dept> all = deptMapper.selectList(wrapper);
         return R.ok(deptConvert.toSimpleVOList(all));
     }
 
@@ -117,6 +129,13 @@ public class DeptServiceImpl implements DeptService {
             kids.forEach(stack::push);
         }
         return count - 1; // 排除自身
+    }
+
+    private List<DeptTreeVO> filterTree(List<DeptTreeVO> nodes, Set<Long> visible) {
+        return nodes.stream()
+                .filter(n -> visible.contains(n.id()))
+                .map(n -> DeptTreeVO.from(n.id(), n.parentId(), n.label(), filterTree(n.children(), visible)))
+                .collect(Collectors.toList());
     }
 
     private List<DeptTreeVO> buildTree(Long parentId, Map<Long, List<Dept>> byParent) {

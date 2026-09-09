@@ -6,7 +6,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Sa-Token 拦截器配置。开启注解鉴权。
+ * Sa-Token 拦截器配置：全局登录校验 + 注解鉴权。
  */
 @Configuration
 public class SaTokenConfig implements WebMvcConfigurer {
@@ -15,10 +15,6 @@ public class SaTokenConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor())
                 .addPathPatterns("/admin-api/**")
-                .excludePathPatterns(
-                        "/admin-api/auth/captcha",
-                        "/admin-api/auth/login",
-                        "/admin-api/auth/logout"
-                );
+                .excludePathPatterns("/admin-api/auth/captcha", "/admin-api/auth/login", "/admin-api/auth/logout");
     }
 }
