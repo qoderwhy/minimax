@@ -54,6 +54,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: root123
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
+      # 生产环境务必替换为随机 32 位以上密钥
+      SA_JWT_SECRET: please-change-this-jwt-secret-32-chars-minimum
     ports:
       - "8080:8080"
 

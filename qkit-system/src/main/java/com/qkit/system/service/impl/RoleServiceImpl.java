@@ -59,7 +59,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional(readOnly = true)
     public R<List<RoleVO>> list() {
         List<Role> list = roleMapper.selectList(new LambdaQueryWrapper<Role>()
-                .eq(Role::getStatus, 0)
+                .eq(Role::getStatus, 1)
                 .orderByAsc(Role::getSort));
         return R.ok(roleConvert.toVOList(list));
     }

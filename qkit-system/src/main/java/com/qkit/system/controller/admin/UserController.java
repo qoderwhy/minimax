@@ -10,6 +10,7 @@ import com.qkit.framework.repeat.annotation.RepeatSubmit;
 import com.qkit.system.domain.dto.PasswordDTO;
 import com.qkit.system.domain.dto.UserProfileUpdateDTO;
 import com.qkit.system.domain.dto.UserQueryDTO;
+import com.qkit.system.domain.dto.UserResetPasswordDTO;
 import com.qkit.system.domain.dto.UserSaveDTO;
 import com.qkit.system.domain.vo.UserVO;
 import com.qkit.system.service.UserService;
@@ -85,8 +86,8 @@ public class UserController {
     @SaCheckPermission("system:user:reset-password")
     @OperLog(module = "用户管理", name = "重置密码")
     @RepeatSubmit
-    public R<Boolean> resetPassword(@RequestParam Long userId, @RequestParam String newPassword) {
-        return userService.resetPassword(userId, newPassword);
+    public R<Boolean> resetPassword(@RequestBody @Valid UserResetPasswordDTO dto) {
+        return userService.resetPassword(dto.userId(), dto.newPassword());
     }
 
     @Operation(summary = "分配角色")

@@ -382,6 +382,7 @@ public void onLoginSuccess(String username) {
 | `system:user:export` | 用户 | 导出 | `UserController.export` | 「导出」按钮 |
 | `system:role:page` | 角色 | 分页查询 | `RoleController.page` | 角色列表 |
 | `system:role:list` | 角色 | 简单列表 | `RoleController.list` | 角色下拉 |
+| `system:role:detail` | 角色 | 详情 | `RoleController.detail` | 「查看详情」按钮 |
 | `system:role:create` | 角色 | 新增 | `RoleController.create` | 「新增角色」按钮 |
 | `system:role:update` | 角色 | 更新 | `RoleController.update` | 「编辑角色」按钮 |
 | `system:role:delete` | 角色 | 删除 | `RoleController.delete` | 「删除角色」按钮 |

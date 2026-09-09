@@ -321,7 +321,7 @@ sys_config (系统参数)      独立，无表间关系
 | 一级目录 | 二级菜单 | 按钮（type=F, perm=权限码） |
 |---|---|---|
 | 系统管理 | 用户管理 (`system:user:page` + `system:user:list` + `system:user:detail`) | `system:user:create` / `system:user:update` / `system:user:delete` / `system:user:assign-role` / `system:user:reset-password` / `system:user:export` |
-| 系统管理 | 角色管理 (`system:role:page` + `system:role:list`) | `system:role:create` / `system:role:update` / `system:role:delete` / `system:role:assign-menu` |
+| 系统管理 | 角色管理 (`system:role:page` + `system:role:list` + `system:role:detail`) | `system:role:create` / `system:role:update` / `system:role:delete` / `system:role:assign-menu` |
 | 系统管理 | 菜单管理 (`system:menu:tree`) | `system:menu:create` / `system:menu:update` / `system:menu:delete` |
 | 系统管理 | 部门管理 (`system:dept:tree`) | `system:dept:simple-list` / `system:dept:create` / `system:dept:update` / `system:dept:delete` |
 | 系统管理 | 岗位管理 (`system:post:page` + `system:post:list`) | `system:post:create` / `system:post:update` / `system:post:delete` |
@@ -331,7 +331,7 @@ sys_config (系统参数)      独立，无表间关系
 | 系统监控 | 预留（`type=M` 占位，暂不放子菜单） | — |
 | 工具 | 预留（`type=M` 占位，暂不放子菜单） | — |
 
-> 上表为**速查清单**。任何新增 / 修改权限码，**必须**同时更新 `06 §10.1` 字典表（唯一权威事实源），并在种子 SQL `V1.0.1__seed.sql` 中落地。
+> 上表为**速查清单**。任何新增 / 修改权限码，**必须**同时更新 `06 §10.1` 字典表（唯一权威事实源），并通过增量 Flyway 迁移（`V1.0.x__*.sql`）落地，**不得**改动已应用的 `V1.0.1__seed.sql`。
 
 ### 5.4 完整种子 SQL 模板（`V1.0.1__seed.sql`）
 

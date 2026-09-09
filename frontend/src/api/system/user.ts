@@ -66,7 +66,7 @@ export function deleteUsers(ids: number[]) {
 export function resetUserPassword(id: number, password: string) {
   return request.put<void>({
     url: '/admin-api/system/user/reset-password',
-    params: { userId: id, newPassword: password }
+    data: { userId: id, newPassword: password }
   })
 }
 

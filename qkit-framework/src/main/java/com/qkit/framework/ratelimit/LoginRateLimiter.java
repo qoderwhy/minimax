@@ -1,7 +1,9 @@
 package com.qkit.framework.ratelimit;
 
+import com.qkit.common.api.ErrorCode;
 import com.qkit.common.constant.CacheConstants;
 import com.qkit.common.constant.SecurityConstants;
+import com.qkit.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -24,7 +26,7 @@ public class LoginRateLimiter {
         String key = CacheConstants.LOGIN_FAIL_KEY_PREFIX + username;
         Object count = redisTemplate.opsForValue().get(key);
         if (count != null && Integer.parseInt(count.toString()) >= SecurityConstants.MAX_LOGIN_FAIL_COUNT) {
-            throw new com.qkit.common.exception.BusinessException(com.qkit.common.api.ErrorCode.USER_LOCKED);
+            throw new BusinessException(ErrorCode.USER_LOCKED);
         }
     }
 

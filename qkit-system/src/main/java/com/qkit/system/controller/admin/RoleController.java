@@ -47,6 +47,7 @@ public class RoleController {
 
     @Operation(summary = "角色详情")
     @GetMapping("/detail/{id}")
+    @SaCheckPermission("system:role:detail")
     public R<RoleVO> detail(@PathVariable Long id) {
         return roleService.detail(id);
     }

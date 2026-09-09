@@ -34,14 +34,9 @@ public class DataScopeHandler implements MultiDataPermissionHandler {
         if (ctx.getTable() == null || ctx.getTable().isBlank()) {
             return null;
         }
-        // 按表名匹配（不区分大小写）
+        // 按表名匹配（不区分大小写）。JSqlParser 中 Table.getName() 恒为原始表名，
+        // 别名仅作为列限定符使用（见 resolveColumn），因此直接按原始表名匹配即可。
         String targetTable = ctx.getTable().toLowerCase();
-        String sqlTable = table.getName().toLowerCase();
-        // 支持别名：如果 SQL 中用了别名（如 sys_user u），table.getAlias() 优先
-        if (table.getAlias() != null && !table.getAlias().getName().isBlank()) {
-            sqlTable = table.getAlias().getName().toLowerCase();
-        }
-        // 匹配原始表名（不匹配别名本身，因为别名是用户自定义的）
         if (!targetTable.equals(table.getName().toLowerCase())) {
             return null;
         }

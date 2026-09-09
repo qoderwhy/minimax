@@ -84,6 +84,7 @@ public class DictController {
 
     @Operation(summary = "新增字典项")
     @PostMapping("/item/create")
+    @SaCheckPermission("system:dict:create")
     @OperLog(module = "字典管理", name = "新增字典项")
     @RepeatSubmit
     public R<Long> createItem(@RequestBody @Validated(SaveGroup.class) DictItemSaveDTO dto) {
@@ -92,6 +93,7 @@ public class DictController {
 
     @Operation(summary = "更新字典项")
     @PutMapping("/item/update")
+    @SaCheckPermission("system:dict:update")
     @OperLog(module = "字典管理", name = "更新字典项")
     @RepeatSubmit
     public R<Boolean> updateItem(@RequestBody @Validated(UpdateGroup.class) DictItemSaveDTO dto) {
@@ -100,6 +102,7 @@ public class DictController {
 
     @Operation(summary = "删除字典项")
     @DeleteMapping("/item/delete")
+    @SaCheckPermission("system:dict:delete")
     @OperLog(module = "字典管理", name = "删除字典项")
     @RepeatSubmit
     public R<Boolean> deleteItem(@RequestBody List<Long> ids) {

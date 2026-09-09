@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.inner.BlockAttackInnerIntercep
 import com.baomidou.mybatisplus.extension.plugins.inner.DataPermissionInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
+import cn.dev33.satoken.stp.StpUtil;
 import com.qkit.common.constant.SecurityConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.reflection.MetaObject;
@@ -67,8 +68,8 @@ public class MybatisPlusConfig {
 
             private Long currentUserId() {
                 try {
-                    return cn.dev33.satoken.stp.StpUtil.isLogin()
-                            ? cn.dev33.satoken.stp.StpUtil.getLoginIdAsLong()
+                    return StpUtil.isLogin()
+                            ? StpUtil.getLoginIdAsLong()
                             : 0L;
                 } catch (Exception e) {
                     return 0L;
