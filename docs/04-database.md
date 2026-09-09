@@ -331,7 +331,7 @@ sys_config (系统参数)      独立，无表间关系
 | 系统监控 | 预留（`type=M` 占位，暂不放子菜单） | — |
 | 工具 | 预留（`type=M` 占位，暂不放子菜单） | — |
 
-> 上表为**速查清单**。任何新增 / 修改权限码，**必须**同时更新 `06 §10.1` 字典表（唯一权威事实源），并通过增量 Flyway 迁移（`V1.0.x__*.sql`）落地，**不得**改动已应用的 `V1.0.1__seed.sql`。
+> 上表为**速查清单**。任何新增 / 修改权限码，**必须**同时更新 `06 §10.1` 字典表（唯一权威事实源），并通过增量 Flyway 迁移（`V1.0.2__*.sql` 起）落地，**不得**改动已应用的 `V1.0.0__init.sql` 或 `V1.0.1__seed.sql`。
 
 ### 5.4 完整种子 SQL 模板（`V1.0.1__seed.sql`）
 
@@ -425,7 +425,7 @@ INSERT INTO sys_role (id, name, code, data_scope, sort, status, create_by, creat
 (1, '超级管理员', 'admin',  1, 1, 1, 1, NOW()),
 (2, '普通用户',   'common', 4, 2, 1, 1, NOW());
 
--- admin 拥有全部菜单权限（1~171）
+-- admin 拥有全部菜单权限（1~185）
 INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT 1, id FROM sys_menu WHERE del_flag = 0;
 
@@ -486,10 +486,17 @@ INSERT INTO sys_dict_item (dict_type, label, value, sort, status, create_by, cre
 -- sys_yes_no
 ('sys_yes_no',        '是', 'Y', 1, 1, 1, NOW()),
 ('sys_yes_no',        '否', 'N', 2, 1, 1, NOW());
+
+-- ---------- 14. 系统参数配置 ----------
+INSERT INTO sys_config (id, config_name, config_key, config_value, config_type, remark, create_by, create_time) VALUES
+(1, '用户初始密码',       'sys.user.initPassword',    '123456',     'Y', '新用户默认初始密码',                1, NOW()),
+(2, '登录验证码开关',     'sys.login.captchaEnabled', 'true',       'Y', '登录时是否显示图形验证码',          1, NOW()),
+(3, '登录失败锁定次数',   'sys.login.retryLimit',     '5',          'N', '同一用户名密码连续输错锁定次数',    1, NOW()),
+(4, '上传文件大小上限',   'sys.upload.maxSize',       '10',         'N', '上传文件大小上限(MB)',              1, NOW()),
+(5, '系统首页皮肤',       'sys.index.skinName',       'skin-blue',  'N', '系统首页皮肤',                      1, NOW());
 ```
 
 > 完整 DDL 在 `qkit-admin/src/main/resources/db/migration/V1.0.0__init.sql`，种子数据在 `V1.0.1__seed.sql`。
-> `sys_config` 表 DDL + 菜单（180~185）+ 参数种子在 `V1.0.2__sys_config.sql`。
 > admin 密码哈希为示例 hash，**生产部署必须**用 `BCrypt.hashpw('新密码', 10)` 重新生成后替换。
 
 ## 6. JSON vs 关系型权衡

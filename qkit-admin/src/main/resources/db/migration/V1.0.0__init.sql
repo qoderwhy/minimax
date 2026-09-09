@@ -1,5 +1,5 @@
 -- ==========================================================
--- V1.0.0__init.sql  建表脚本
+-- V1.0.0__init.sql  全部建表 DDL
 -- ==========================================================
 
 -- ---------- 用户 ----------
@@ -215,3 +215,19 @@ CREATE TABLE `sys_login_log` (
   KEY `idx_login_time` (`login_time`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='登录日志表';
+
+-- ---------- 系统参数配置 ----------
+CREATE TABLE `sys_config` (
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `config_name`  VARCHAR(100) NOT NULL DEFAULT '' COMMENT '参数名称',
+  `config_key`   VARCHAR(100) NOT NULL DEFAULT '' COMMENT '参数键名（程序取值的Key）',
+  `config_value` VARCHAR(500) NOT NULL DEFAULT '' COMMENT '参数键值',
+  `config_type`  CHAR(1)      NOT NULL DEFAULT 'N' COMMENT '是否系统内置: Y是 N否（内置不可删）',
+  `remark`       VARCHAR(500) NOT NULL DEFAULT '' COMMENT '备注',
+  `create_by`    BIGINT       NOT NULL DEFAULT 0 COMMENT '创建人',
+  `create_time`  DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_by`    BIGINT       NOT NULL DEFAULT 0 COMMENT '更新人',
+  `update_time`  DATETIME DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_config_key` (`config_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统参数配置表';

@@ -1,5 +1,5 @@
 -- ==========================================================
--- V1.0.1__seed.sql  种子数据
+-- V1.0.1__seed.sql  全部种子数据（菜单/角色/用户/部门/岗位/字典/参数）
 -- ==========================================================
 
 -- ---------- 一级目录 ----------
@@ -29,7 +29,9 @@ INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, so
 (113, '新增角色', 'F', 110, NULL, NULL, 'system:role:create',       NULL, 3, 1, 1, 1, NOW()),
 (114, '编辑角色', 'F', 110, NULL, NULL, 'system:role:update',       NULL, 4, 1, 1, 1, NOW()),
 (115, '删除角色', 'F', 110, NULL, NULL, 'system:role:delete',       NULL, 5, 1, 1, 1, NOW()),
-(116, '分配菜单', 'F', 110, NULL, NULL, 'system:role:assign-menu',  NULL, 6, 1, 1, 1, NOW());
+(116, '分配菜单', 'F', 110, NULL, NULL, 'system:role:assign-menu',  NULL, 6, 1, 1, 1, NOW()),
+(117, '分配部门', 'F', 110, NULL, NULL, 'system:role:assign-dept',  NULL, 7, 1, 1, 1, NOW()),
+(118, '角色详情', 'F', 110, NULL, NULL, 'system:role:detail',       NULL, 8, 1, 1, 1, NOW());
 
 -- ---------- 系统管理 → 菜单管理 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
@@ -80,14 +82,25 @@ INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, so
 (172, '删除日志', 'F', 170, NULL, NULL, 'system:login-log:delete', NULL, 2, 1, 1, 1, NOW()),
 (173, '清空日志', 'F', 170, NULL, NULL, 'system:login-log:clean',  NULL, 3, 1, 1, 1, NOW());
 
+-- ---------- 系统管理 → 参数设置 ----------
+INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
+(180, '参数设置', 'C', 1, '/system/config', 'system/config/index', 'system:config:page', 'Operation', 9, 0, 1, 1, NOW()),
+(181, '配置查询', 'F', 180, NULL, NULL, 'system:config:page',   NULL, 1, 0, 1, 1, NOW()),
+(182, '配置列表', 'F', 180, NULL, NULL, 'system:config:list',   NULL, 2, 0, 1, 1, NOW()),
+(183, '新增配置', 'F', 180, NULL, NULL, 'system:config:create', NULL, 3, 0, 1, 1, NOW()),
+(184, '编辑配置', 'F', 180, NULL, NULL, 'system:config:update', NULL, 4, 0, 1, 1, NOW()),
+(185, '删除配置', 'F', 180, NULL, NULL, 'system:config:delete', NULL, 5, 0, 1, 1, NOW());
+
 -- ---------- 角色 ----------
 INSERT INTO sys_role (id, name, code, data_scope, sort, status, create_by, create_time) VALUES
 (1, '超级管理员', 'admin',  1, 1, 1, 1, NOW()),
 (2, '普通用户',   'common', 4, 2, 1, 1, NOW());
 
+-- admin 角色获得全部菜单权限
 INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT 1, id FROM sys_menu WHERE del_flag = 0;
 
+-- 普通用户角色仅授予日志查看
 INSERT INTO sys_role_menu (role_id, menu_id) VALUES
 (2, 160), (2, 161), (2, 170), (2, 171);
 
@@ -136,3 +149,11 @@ INSERT INTO sys_dict_item (dict_type, label, value, sort, status, create_by, cre
 ('sys_data_scope',    '自定义',       '5', 5, 1, 1, NOW()),
 ('sys_yes_no',        '是', 'Y', 1, 1, 1, NOW()),
 ('sys_yes_no',        '否', 'N', 2, 1, 1, NOW());
+
+-- ---------- 系统参数配置 ----------
+INSERT INTO sys_config (id, config_name, config_key, config_value, config_type, remark, create_by, create_time) VALUES
+(1, '用户初始密码',       'sys.user.initPassword',    '123456',     'Y', '新用户默认初始密码',                1, NOW()),
+(2, '登录验证码开关',     'sys.login.captchaEnabled', 'true',       'Y', '登录时是否显示图形验证码',          1, NOW()),
+(3, '登录失败锁定次数',   'sys.login.retryLimit',     '5',          'N', '同一用户名密码连续输错锁定次数',    1, NOW()),
+(4, '上传文件大小上限',   'sys.upload.maxSize',       '10',         'N', '上传文件大小上限(MB)',              1, NOW()),
+(5, '系统首页皮肤',       'sys.index.skinName',       'skin-blue',  'N', '系统首页皮肤',                      1, NOW());
