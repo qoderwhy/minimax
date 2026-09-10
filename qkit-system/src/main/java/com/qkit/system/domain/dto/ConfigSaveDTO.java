@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
 
-public record SysConfigSaveDTO(
+public record ConfigSaveDTO(
         @NotNull(message = "ID不能为空", groups = UpdateGroup.class) Long id,
         @NotBlank(message = "参数名称不能为空", groups = SaveGroup.class) String configName,
         @NotBlank(message = "参数键名不能为空", groups = SaveGroup.class) String configKey,

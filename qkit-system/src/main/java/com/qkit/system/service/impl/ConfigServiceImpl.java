@@ -11,13 +11,13 @@ import com.qkit.common.cache.CacheService;
 import com.qkit.common.constant.CacheConstants;
 import com.qkit.common.exception.BusinessException;
 import com.qkit.common.transaction.TransactionUtils;
-import com.qkit.system.convert.SysConfigConvert;
-import com.qkit.system.domain.dto.SysConfigQueryDTO;
-import com.qkit.system.domain.dto.SysConfigSaveDTO;
-import com.qkit.system.domain.entity.SysConfig;
-import com.qkit.system.domain.vo.SysConfigVO;
-import com.qkit.system.mapper.SysConfigMapper;
-import com.qkit.system.service.SysConfigService;
+import com.qkit.system.convert.ConfigConvert;
+import com.qkit.system.domain.dto.ConfigQueryDTO;
+import com.qkit.system.domain.dto.ConfigSaveDTO;
+import com.qkit.system.domain.entity.Config;
+import com.qkit.system.domain.vo.ConfigVO;
+import com.qkit.system.mapper.ConfigMapper;
+import com.qkit.system.service.ConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -38,73 +38,73 @@ import java.util.List;
 @Service
 @Validated
 @RequiredArgsConstructor
-public class SysConfigServiceImpl implements SysConfigService, CommandLineRunner {
+public class ConfigServiceImpl implements ConfigService, CommandLineRunner {
 
     /** 是否系统内置参数，内置参数不允许删除或修改键名 */
     private static final String BUILTIN = "Y";
 
-    private final SysConfigMapper sysConfigMapper;
-    private final SysConfigConvert sysConfigConvert;
+    private final ConfigMapper configMapper;
+    private final ConfigConvert configConvert;
     private final CacheService cacheService;
 
     @Override
     @Transactional(readOnly = true)
-    public R<List<SysConfigVO>> page(SysConfigQueryDTO query) {
-        Page<SysConfig> page = Page.of(
+    public R<List<ConfigVO>> page(ConfigQueryDTO query) {
+        Page<Config> page = Page.of(
                 query.pageNum() == null ? 1 : query.pageNum(),
                 query.pageSize() == null ? 10 : query.pageSize());
-        LambdaQueryWrapper<SysConfig> wrapper = new LambdaQueryWrapper<SysConfig>()
-                .like(StrUtil.isNotBlank(query.configKey()), SysConfig::getConfigKey, query.configKey())
-                .like(StrUtil.isNotBlank(query.configName()), SysConfig::getConfigName, query.configName())
-                .orderByDesc(SysConfig::getId);
-        Page<SysConfig> result = sysConfigMapper.selectPage(page, wrapper);
-        return R.ok(sysConfigConvert.toVOList(result.getRecords()), result.getTotal(), query.pageNum(), query.pageSize());
+        LambdaQueryWrapper<Config> wrapper = new LambdaQueryWrapper<Config>()
+                .like(StrUtil.isNotBlank(query.configKey()), Config::getConfigKey, query.configKey())
+                .like(StrUtil.isNotBlank(query.configName()), Config::getConfigName, query.configName())
+                .orderByDesc(Config::getId);
+        Page<Config> result = configMapper.selectPage(page, wrapper);
+        return R.ok(configConvert.toVOList(result.getRecords()), result.getTotal(), query.pageNum(), query.pageSize());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public R<List<SysConfigVO>> list() {
-        List<SysConfig> configs = sysConfigMapper.selectList(new LambdaQueryWrapper<SysConfig>()
-                .orderByAsc(SysConfig::getConfigKey));
-        return R.ok(sysConfigConvert.toVOList(configs));
+    public R<List<ConfigVO>> list() {
+        List<Config> configs = configMapper.selectList(new LambdaQueryWrapper<Config>()
+                .orderByAsc(Config::getConfigKey));
+        return R.ok(configConvert.toVOList(configs));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public R<Long> create(SysConfigSaveDTO dto) {
+    public R<Long> create(ConfigSaveDTO dto) {
         checkKeyUnique(dto.configKey(), null);
-        SysConfig config = sysConfigConvert.toEntity(dto);
+        Config config = configConvert.toEntity(dto);
         if (StrUtil.isBlank(config.getConfigType())) config.setConfigType("N");
         if (config.getConfigValue() == null) config.setConfigValue("");
-        sysConfigMapper.insert(config);
+        configMapper.insert(config);
         TransactionUtils.afterCommit(() -> refreshCache(config.getConfigKey()));
         return R.ok(config.getId());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public R<Boolean> update(SysConfigSaveDTO dto) {
-        SysConfig exist = sysConfigMapper.selectById(dto.id());
+    public R<Boolean> update(ConfigSaveDTO dto) {
+        Config exist = configMapper.selectById(dto.id());
         if (exist == null) throw new BusinessException(ErrorCode.NOT_FOUND);
         // 内置参数不允许修改键名
         if (BUILTIN.equals(exist.getConfigType()) && !exist.getConfigKey().equals(dto.configKey())) {
             throw new BusinessException(ErrorCode.CONFIG_BUILTIN);
         }
         checkKeyUnique(dto.configKey(), dto.id());
-        SysConfig config = sysConfigConvert.toEntity(dto);
+        Config config = configConvert.toEntity(dto);
         if (config.getConfigValue() == null) config.setConfigValue("");
         String newKey = config.getConfigKey();
         if (!exist.getConfigKey().equals(newKey)) {
             // 键名被修改时，需清理旧键名的缓存
             String oldKey = exist.getConfigKey();
-            sysConfigMapper.updateById(config);
+            configMapper.updateById(config);
             TransactionUtils.afterCommit(() -> {
                 cacheService.delete(CacheConstants.CONFIG_KEY_PREFIX + oldKey);
                 refreshCache(newKey);
             });
             return R.ok(true);
         }
-        sysConfigMapper.updateById(config);
+        configMapper.updateById(config);
         TransactionUtils.afterCommit(() -> refreshCache(newKey));
         return R.ok(true);
     }
@@ -115,14 +115,14 @@ public class SysConfigServiceImpl implements SysConfigService, CommandLineRunner
         if (CollUtil.isEmpty(ids)) throw new BusinessException(ErrorCode.BAD_REQUEST);
         List<String> cacheKeys = new ArrayList<>();
         for (Long id : ids) {
-            SysConfig config = sysConfigMapper.selectById(id);
+            Config config = configMapper.selectById(id);
             if (config == null) continue;
             if (BUILTIN.equals(config.getConfigType())) {
                 throw new BusinessException(ErrorCode.CONFIG_BUILTIN);
             }
             cacheKeys.add(config.getConfigKey());
         }
-        sysConfigMapper.deleteByIds(ids);
+        configMapper.deleteByIds(ids);
         TransactionUtils.afterCommit(() -> cacheKeys.forEach(key ->
                 cacheService.delete(CacheConstants.CONFIG_KEY_PREFIX + key)));
         return R.ok(true);
@@ -160,7 +160,7 @@ public class SysConfigServiceImpl implements SysConfigService, CommandLineRunner
 
     @Override
     public void loadAllToCache() {
-        List<SysConfig> configs = sysConfigMapper.selectList(new LambdaQueryWrapper<SysConfig>());
+        List<Config> configs = configMapper.selectList(new LambdaQueryWrapper<Config>());
         configs.forEach(c -> setCache(c.getConfigKey(), c.getConfigValue()));
     }
 
@@ -177,18 +177,18 @@ public class SysConfigServiceImpl implements SysConfigService, CommandLineRunner
 
     /** 校验键名唯一（排除 updateId 自身） */
     private void checkKeyUnique(String configKey, Long excludeId) {
-        LambdaQueryWrapper<SysConfig> wrapper = new LambdaQueryWrapper<SysConfig>()
-                .eq(SysConfig::getConfigKey, configKey);
-        if (excludeId != null) wrapper.ne(SysConfig::getId, excludeId);
-        if (sysConfigMapper.selectCount(wrapper) > 0) {
+        LambdaQueryWrapper<Config> wrapper = new LambdaQueryWrapper<Config>()
+                .eq(Config::getConfigKey, configKey);
+        if (excludeId != null) wrapper.ne(Config::getId, excludeId);
+        if (configMapper.selectCount(wrapper) > 0) {
             throw new BusinessException(ErrorCode.CONFIG_KEY_EXISTS);
         }
     }
 
     /** 缓存未命中时回源数据库并回填缓存 */
     private String queryFromDb(String key) {
-        SysConfig config = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>()
-                .eq(SysConfig::getConfigKey, key)
+        Config config = configMapper.selectOne(new LambdaQueryWrapper<Config>()
+                .eq(Config::getConfigKey, key)
                 .last("LIMIT 1"));
         if (config == null) return null;
         setCache(key, config.getConfigValue());
@@ -197,8 +197,8 @@ public class SysConfigServiceImpl implements SysConfigService, CommandLineRunner
 
     /** 增删改后刷新缓存：存在则回填，不存在则清理，实现热更新 */
     private void refreshCache(String key) {
-        SysConfig config = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>()
-                .eq(SysConfig::getConfigKey, key)
+        Config config = configMapper.selectOne(new LambdaQueryWrapper<Config>()
+                .eq(Config::getConfigKey, key)
                 .last("LIMIT 1"));
         if (config == null) {
             cacheService.delete(CacheConstants.CONFIG_KEY_PREFIX + key);

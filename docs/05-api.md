@@ -9,7 +9,7 @@
 @Data
 public class R<T> {
     private Integer code;       // 200=成功，其他=失败
-    private String message;     // 中文提示
+    private String message;     // 提示信息（成功固定为 "ok"）
     private T data;             // 业务数据
     private Long total;         // 分页总数（仅分页接口）
     private Long pageNum;       // 当前页
@@ -147,6 +147,25 @@ public class GlobalExceptionHandler {
         return R.fail(ErrorCode.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(SystemException.class)
+    public R<Void> handleSystem(SystemException e) {
+        log.error("系统异常：{}", e.getMessage(), e);
+        return R.fail(e.getCode(), e.getMessage());
+    }
+
+    @ExceptionHandler(BindException.class)
+    public R<Void> handleBind(BindException e) {
+        String msg = e.getBindingResult().getFieldErrors().stream()
+            .map(f -> f.getField() + " " + f.getDefaultMessage())
+            .collect(Collectors.joining("; "));
+        return R.fail(ErrorCode.VALIDATION_FAILED.getCode(), msg);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public R<Void> handleIllegalArgument(IllegalArgumentException e) {
+        return R.fail(ErrorCode.BAD_REQUEST.getCode(), e.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public R<Void> handleAny(Exception e) {
         log.error("系统异常", e);
@@ -175,6 +194,7 @@ public class GlobalExceptionHandler {
 | `system/dept` | 部门管理 |
 | `system/post` | 岗位管理 |
 | `system/dict` | 字典管理 |
+| `system/config` | 系统参数配置 |
 | `system/oper-log` | 操作日志 |
 | `system/login-log` | 登录日志 |
 
@@ -191,10 +211,12 @@ public class GlobalExceptionHandler {
 | `export` | GET | `/admin-api/system/user/export` | `@RequestParam ...Query` | 文件流 | 导出 Excel |
 | `simple-list` | GET | `/admin-api/system/dept/simple-list` | — | `R<List<DeptSimpleVO>>` | 下拉专用简化 VO |
 | `assign-role` | PUT | `/admin-api/system/user/assign-role` | `@RequestParam userId, @RequestBody List<Long> roleIds` | `R<Boolean>` | 分配角色（仅限 user 资源） |
-| `reset-password` | PUT | `/admin-api/system/user/reset-password` | `@RequestParam userId, newPassword` | `R<Boolean>` | 重置密码（仅限 user 资源） |
+| `reset-password` | PUT | `/admin-api/system/user/reset-password` | `@RequestBody @Valid UserResetPasswordDTO{userId,newPassword}` | `R<Boolean>` | 重置密码（仅限 user 资源） |
 | `assign-menu` | PUT | `/admin-api/system/role/assign-menu` | `@RequestParam roleId, @RequestBody List<Long> menuIds` | `R<Boolean>` | 分配菜单（仅限 role 资源） |
+| `assign-dept` | PUT | `/admin-api/system/role/assign-dept` | `@RequestParam roleId, @RequestBody List<Long> deptIds` | `R<Boolean>` | 分配数据权限部门（仅限 role 资源） |
+| `clean` | DELETE | `/admin-api/system/oper-log/clean` | — | `R<Boolean>` | 清空日志（oper-log / login-log） |
 
-> 增删改查及业务动作统一 **11 个动词**：`page` / `list` / `detail` / `create` / `update` / `delete` / `export` / `simple-list` / `assign-role` / `reset-password` / `assign-menu`。本表与 06 第 2 节 action 清单、06 第 10.1 节权限码字典表**一一对应**。`POST /create` 与 `PUT /update` 是 Spring 风格（`@PostMapping` / `@PutMapping`），不混用 `@GetMapping` 改资源。
+> 增删改查及业务动作的核心动词为：`page` / `list` / `detail` / `create` / `update` / `delete` / `export` / `simple-list` / `assign-role` / `reset-password` / `assign-menu`（另有资源专属动作 `assign-dept`、`clean` 等，见上表）。**实际动作以各 Controller 与 06 第 10.1 节权限码字典表为准，二者必须一致**。`POST /create` 与 `PUT /update` 是 Spring 风格（`@PostMapping` / `@PutMapping`），不混用 `@GetMapping` 改资源。
 
 ### 5.1 ⛔ URL 命名禁忌 6 条（违反即不通过 Code Review）
 
@@ -213,7 +235,7 @@ public class GlobalExceptionHandler {
 
 | Header | 用途 | 示例 |
 |---|---|---|
-| `satoken` | Sa-Token token | `Bearer xxx`（前端 `request.ts` 拦截器自动加） |
+| `satoken` | Sa-Token token 原文 | `<token>`（前端 `request.ts` 拦截器自动加，**不加** `Bearer` 前缀） |
 | `Content-Type` | 请求类型 | `application/json;charset=UTF-8` |
 | `X-Trace-Id` | 链路 ID（可选） | UUID |
 | `Authorization` | **不用**（Sa-Token 用自定义头） | — |
@@ -223,24 +245,27 @@ public class GlobalExceptionHandler {
 ```ts
 request.interceptors.request.use((config) => {
   const token = useUserStore().token
-  if (token) config.headers['satoken'] = `Bearer ${token}`
+  if (token) config.headers['satoken'] = token      // 直接透传 token 原文，无 Bearer 前缀
   return config
 })
 
 request.interceptors.response.use(
   (resp) => {
-    const { code, message, data } = resp.data
-    if (code === 200) return resp.data
-    if (code === 401) { /* 跳登录 */ }
-    ElMessage.error(message)
-    return Promise.reject(resp.data)
+    const r = resp.data as R
+    if (r === null || typeof r !== 'object' || !('code' in r)) return resp  // 文件流等原样返回
+    if (r.code === 200) return resp                 // 成功返回完整 axios response
+    if (r.code === 401) { /* 跳登录一次 */ }
+    ElMessage.error(r.message || '请求失败')
+    return Promise.reject(r)
   },
   (err) => {
-    ElMessage.error(err.message || '网络异常')
+    ElMessage.error(err?.message || '网络异常')
     return Promise.reject(err)
   }
 )
 ```
+
+> 成功时拦截器返回的是**完整 axios response**，业务层再通过 `requestData()` 取 `resp.data.data`；`http.page()` 取 `resp.data.data` + `resp.data.total`。视图层不直接消费 `R`。
 
 ## 7. 分页约定
 
@@ -277,10 +302,14 @@ return R.ok(result.getRecords(), result.getTotal(), query.getPageNum(), query.ge
 ```java
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+
+    @Value("${app.cors.allowed-origin-patterns:http://localhost:*,http://127.0.0.1:*}")
+    private String[] allowedOriginPatterns;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-            .allowedOriginPatterns("*")    // dev 用 * ；生产指定域名
+            .allowedOriginPatterns(allowedOriginPatterns)
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("*")
             .exposedHeaders("satoken")
@@ -289,6 +318,8 @@ public class WebConfig implements WebMvcConfigurer {
     }
 }
 ```
+
+> 默认**仅放行本机来源**；生产通过 `app.cors.allowed-origin-patterns` 指定域名，**禁止**用 `*`（与 `allowCredentials(true)` 冲突）。
 
 ## 9. 幂等性
 

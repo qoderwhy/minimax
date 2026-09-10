@@ -7,7 +7,7 @@
 | JDK | 17 (Temurin) | https://adoptium.net/ | `java -version` |
 | Maven | 3.8+ | https://maven.apache.org/ | `mvn -v` |
 | Node.js | 20 LTS | https://nodejs.org/ | `node -v` |
-| pnpm | 9+ | `npm i -g pnpm` | `pnpm -v` |
+| npm | 随 Node 20 | （随 Node 安装） | `npm -v` |
 | Docker Desktop | 4.x | https://www.docker.com/ | `docker -v` |
 | MySQL 客户端 | 8.0+ | （可选，用 docker 起服务即可） | `mysql -V` |
 | Redis 客户端 | 7+ | （同上） | `redis-cli -v` |
@@ -16,10 +16,16 @@
 
 ## 2. 一键启动
 
-### 2.1 启动基础服务（MySQL + Redis）
+### 2.1 启动基础服务（MySQL + Redis，可选含前后端）
+
+> `deploy/docker-compose.yml` 实际包含 4 个服务：`mysql`、`redis`、`backend`、`frontend`。
+> 只想起中间件时，可仅启动 `mysql redis`。
 
 ```bash
-docker compose up -d
+cd deploy
+docker compose up -d              # 全量（含 backend / frontend 容器）
+# 或仅中间件：
+docker compose up -d mysql redis
 ```
 
 等待 MySQL 就绪（约 30s）：
@@ -32,15 +38,19 @@ docker compose logs -f mysql
 
 ### 2.2 初始化数据库
 
-首次启动会自动执行 `deploy/mysql/init/*.sql`（如果有）。**但 Flyway 才是项目级的版本化管理**，新环境建议用：
+数据库 DDL / 种子 SQL 位于 `qkit-admin/src/main/resources/db/migration/`（`V1.0.0__init.sql`、`V1.0.1__seed.sql`），由 Flyway 管理：
 
 ```bash
-# 方式 A：项目级 Flyway（推荐，qkit-admin 启动时自动跑）
-# 启动后端时自动执行
+# 方式 A：Flyway（推荐）
+#   注意：application-dev.yml 中 spring.flyway.enabled=false，dev 启动【不会】自动执行；
+#   需把该项改为 true，或使用 prod profile（application-prod.yml 已开启）。
+#   开启后启动后端即自动执行 db/migration 下的迁移脚本。
 
-# 方式 B：手动导入（不推荐）
+# 方式 B：手动导入（dev 常用）
 docker compose exec -T mysql mysql -uroot -proot123 qkit \
   < qkit-admin/src/main/resources/db/migration/V1.0.0__init.sql
+docker compose exec -T mysql mysql -uroot -proot123 qkit \
+  < qkit-admin/src/main/resources/db/migration/V1.0.1__seed.sql
 ```
 
 ### 2.3 启动后端
@@ -50,20 +60,14 @@ cd qkit-admin
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-或用 Makefile：
-
-```bash
-make backend-run
-```
-
 监听端口：**8080**。
 
 ### 2.4 启动前端
 
 ```bash
 cd frontend
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 监听端口：**5173**。
@@ -76,9 +80,10 @@ pnpm dev
 
 ```
 application.yml          # 公共配置
-application-dev.yml      # 开发（默认）
+application-dev.yml      # 开发（默认 profile）
 application-prod.yml     # 生产
-application-local.yml    # 个人（gitignore，已被 .gitignore 排除）
+logback-spring.xml       # 日志配置
+# application-local.yml  # 规划：个人本地覆盖（当前未创建；如需启用请自行新建并加入 .gitignore）
 ```
 
 ### 3.1 application.yml 公共部分
@@ -106,8 +111,8 @@ server:
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/qkit?useSSL=false&useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: qkit
-    password: qkit123
+    username: root
+    password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
@@ -115,12 +120,16 @@ spring:
       port: 6379
       database: 0
       password:
+  flyway:
+    enabled: false
 
 sa-token:
   token-name: satoken
   timeout: 86400
   active-timeout: 1800
   is-concurrent: true
+  is-share: false
+  token-style: uuid
   is-read-cookie: false
   is-read-header: true
 
@@ -135,28 +144,36 @@ logging:
 ```yaml
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USER}
-    password: ${DB_PWD}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT:6379}
-      database: ${REDIS_DB:0}
-      password: ${REDIS_PWD}
+      host: ${SPRING_REDIS_HOST}
+      port: ${SPRING_REDIS_PORT:6379}
+      database: ${SPRING_REDIS_DB:0}
+      password: ${SPRING_REDIS_PASSWORD:}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
 
 sa-token:
   token-name: satoken
   timeout: ${SA_TOKEN_TIMEOUT:86400}
   jwt-secret-key: ${SA_JWT_SECRET}
 
+app:
+  security:
+    trusted-proxies: ${TRUSTED_PROXIES:172.16.0.0/12,127.0.0.1,::1}
+
 logging:
   level:
     com.qkit: info
-  file:
-    name: /var/log/qkit/app.log
 ```
+
+> 日志文件路径由 `logback-spring.xml` 控制（prod 为 `/var/log/qkit/app.log` 及 `app-error.log`），**不在** `application-prod.yml` 里配。
+> 生产环境接口文档已关闭（`springdoc`/`knife4j` 均 `enable=false`），actuator 仅暴露 `health` 且不展示细节。
 
 > 生产配置**全部**用环境变量，不写死。
 
@@ -167,13 +184,14 @@ logging:
 > Flyway 版本已由 `pom.xml` 锁为 **9.22.3**（见 02 §3 `<properties>`），与 MySQL 8 + Spring Boot 3.2 兼容。**禁止**升级到 10.x（License 变更且与 Boot 3.2 默认管理版本错位）。
 
 ```yaml
+# 仅 application-prod.yml 开启；application-dev.yml 为 enabled: false
 spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: true
-    table: flyway_schema_history
 ```
+
+> 当前**未配置** `baseline-on-migrate` 与 `table`；历史表用 Flyway 默认名 `flyway_schema_history`。
 
 ### 4.2 迁移文件命名
 
@@ -196,82 +214,89 @@ spring:
 ### 5.1 单体 jar 部署
 
 ```bash
-# 后端打包（包含前端静态资源）
-cd qkit-admin
-mvn -B clean package -Pprod
+# 后端打包（多模块需在仓库根执行）
+mvn -B clean package -DskipTests
 
-# 上传 jar 到服务器
-scp target/qkit-admin-1.0.0.jar user@server:/opt/qkit/
+# 上传 jar 到服务器（qkit-admin/pom.xml 已设 finalName=qkit-admin）
+scp qkit-admin/target/qkit-admin.jar user@server:/opt/qkit/
 
 # 服务器上启动
 java -jar -Dspring.profiles.active=prod \
-  -DDB_URL=jdbc:mysql://10.0.0.1:3306/qkit \
-  -DDB_USER=qkit -DDB_PWD=xxx \
-  -DREDIS_HOST=10.0.0.2 -DREDIS_PWD=xxx \
+  -DSPRING_DATASOURCE_URL=jdbc:mysql://10.0.0.1:3306/qkit \
+  -DSPRING_DATASOURCE_USERNAME=qkit -DSPRING_DATASOURCE_PASSWORD=xxx \
+  -DSPRING_REDIS_HOST=10.0.0.2 -DSPRING_REDIS_PASSWORD=xxx \
   -DSA_JWT_SECRET=xxx \
-  /opt/qkit/qkit-admin-1.0.0.jar
+  /opt/qkit/qkit-admin.jar
 ```
+
+> **无** Maven `prod` profile，生产由 `--spring.profiles.active=prod` 激活；后端 jar 默认**不**内嵌前端静态资源（前端由 Nginx 托管，见 5.3）。
 
 ### 5.2 Docker Compose 部署
 
-`deploy/docker-compose.prod.yml`：
+`deploy/docker-compose.yml`（示意，实际以文件为准）：
 
 ```yaml
-version: "3.8"
 services:
-  qkit:
-    image: qkit-admin:1.0.0
-    container_name: qkit
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:mysql://mysql:3306/qkit
-      DB_USER: qkit
-      DB_PWD: ${DB_PWD}
-      REDIS_HOST: redis
-      REDIS_PWD: ${REDIS_PWD}
-      SA_JWT_SECRET: ${SA_JWT_SECRET}
-    depends_on:
-      - mysql
-      - redis
   mysql:
     image: mysql:8.0
-    # ...
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: qkit
+    ports: ["3306:3306"]
   redis:
     image: redis:7-alpine
-    # ...
+    ports: ["6379:6379"]
+  backend:
+    build: { context: .., dockerfile: deploy/docker/Dockerfile.backend }
+    container_name: qkit-backend
+    depends_on:
+      mysql: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/qkit?...
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root123
+      SPRING_REDIS_HOST: redis
+      SA_JWT_SECRET: please-change-this-jwt-secret-32-chars-minimum
+    ports: ["8080:8080"]
+  frontend:
+    build: { context: .., dockerfile: deploy/docker/Dockerfile.frontend }
+    container_name: qkit-frontend
+    ports: ["80:80"]
 ```
+
+> 服务名是 `backend` / `frontend`（**不是** `qkit`）；环境变量统一 `SPRING_*` 前缀；仓库仅一个 compose 文件，**无** `docker-compose.prod.yml`。
 
 ### 5.3 Nginx 反代（前后端分离部署）
 
-`deploy/nginx/qkit.conf`：
+`deploy/nginx/nginx.conf`（容器内路径，静态资源 root 为 `/usr/share/nginx/html`）：
 
 ```nginx
 server {
     listen 80;
-    server_name qkit.example.com;
+    server_name _;
 
-    # 前端静态资源
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # 前端 SPA：所有未知路径都返回 index.html
     location / {
-        root /var/www/qkit/dist;
         try_files $uri $uri/ /index.html;
     }
 
-    # 后端 API
+    # 后端 API（compose 内服务名为 backend）
     location /admin-api/ {
-        proxy_pass http://127.0.0.1:8080/admin-api/;
+        proxy_pass http://backend:8080/admin-api/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-
-    # WebSocket（如未来引入，预留）
-    # location /ws { proxy_pass http://127.0.0.1:8080/ws; ... }
 }
 ```
+
+> 配置**文件名**为 `deploy/nginx/nginx.conf`（**无** `qkit.conf`）。
 
 HTTPS：用 certbot 申请 Let's Encrypt 证书，配置 443。
 
@@ -283,25 +308,26 @@ HTTPS：用 certbot 申请 Let's Encrypt 证书，配置 443。
 curl http://localhost:8080/actuator/health
 ```
 
-响应：
+> `application.yml` 仅暴露 `health,info,prometheus`；**默认不返回** `components` 细节（prod 显式 `show-details: never`）。
+> 需要看到 db/redis 明细时，临时设置 `management.endpoint.health.show-details: always`。
 
 ```json
-{"status":"UP","components":{"db":{"status":"UP"},"redis":{"status":"UP"},"diskSpace":{"status":"UP"}}}
+{"status":"UP"}
 ```
 
 ### 6.2 日志
 
-- 开发：控制台 + 文件 `logs/qkit.log`
-- 生产：JSON 格式，输出到 stdout（容器友好） + 文件 `/var/log/qkit/app.log`
-- 推荐接 ELK / Loki 收集
+- 开发：控制台（彩色）+ 文件 `logs/qkit.log`（ERROR 另存 `logs/qkit-error.log`，按天 + 大小滚动）
+- 生产：控制台 + 文件 `/var/log/qkit/app.log`（ERROR 另存 `app-error.log`），配置见 `logback-spring.xml`
+- 当前为**纯文本**格式（非 JSON）；如需接 ELK / Loki 的 JSON 日志，需自行引入 encoder
 
 ### 6.3 指标
 
-`/actuator/prometheus` 暴露指标（需引 `micrometer-registry-prometheus`），本期**不强制**接 Prometheus。
+`application.yml` 已把 `prometheus` 列入 `management.endpoints.web.exposure.include`，但**当前未引入** `micrometer-registry-prometheus` 依赖，端点实际不存在；本期**不强制**接 Prometheus，接入时补依赖即可。
 
 ## 7. CI/CD（建议）
 
-`.github/workflows/ci.yml`：
+> **规划**：当前仓库**未**包含 `.github/`，以下为建议模板。
 
 ```yaml
 name: CI
@@ -315,27 +341,18 @@ jobs:
         with: { java-version: 17 }
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - uses: pnpm/action-setup@v3
-        with: { version: 9 }
-      - run: mvn -B verify
-        working-directory: qkit-admin
-      - run: pnpm install && pnpm build
+      - run: mvn -B verify                      # 多模块聚合，须在仓库根执行
+      - run: npm install && npm run build
         working-directory: frontend
 ```
 
 ## 8. 常见环境问题
 
-### 8.1 MySQL 8 字符集警告
+### 8.1 MySQL 8 字符集
 
-```
-[Warning] utf8mb4_unicode_ci is deprecated
-```
+项目统一使用 `utf8mb4_unicode_ci`（DDL `V1.0.0__init.sql` 与 `deploy/docker-compose.yml` 的 `--collation-server` 一致），以保持与既有表结构口径统一，**不**改用 `utf8mb4_0900_ai_ci`。
 
-改用 `utf8mb4_0900_ai_ci`（MySQL 8.0 推荐）：
-
-```sql
-CREATE TABLE ... DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
-```
+> 如遇 MySQL 8 对 `utf8mb4_unicode_ci` 的 deprecated 警告，属提示级，可忽略；确需切换排序规则须全库迁移并同步 02 §1 口径。
 
 ### 8.2 启动报"Public Key Retrieval is not allowed"
 
@@ -358,12 +375,14 @@ requirepass yourpassword
 | 变量 | 说明 | 示例 |
 |---|---|---|
 | `SPRING_PROFILES_ACTIVE` | profile | `prod` |
-| `DB_URL` | MySQL JDBC URL | `jdbc:mysql://...` |
-| `DB_USER` / `DB_PWD` | 数据库账密 | — |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PWD` | Redis | — |
+| `SPRING_DATASOURCE_URL` | MySQL JDBC URL | `jdbc:mysql://...` |
+| `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD` | 数据库账密 | — |
+| `SPRING_REDIS_HOST` / `SPRING_REDIS_PORT` / `SPRING_REDIS_DB` / `SPRING_REDIS_PASSWORD` | Redis | — |
 | `SA_JWT_SECRET` | Sa-Token JWT 密钥 | 32 位随机字符串 |
-| `SERVER_PORT` | 后端端口（可选） | 8080 |
-| `LOGGING_LEVEL_COM_QKIT` | 日志级别 | info |
+| `SA_TOKEN_TIMEOUT` | token 超时秒数（可选，默认 86400） | `86400` |
+| `TRUSTED_PROXIES` | 可信反向代理地址（可选） | `172.16.0.0/12,127.0.0.1,::1` |
+| `SERVER_PORT` | 后端端口（Spring 标准绑定，可选） | `8080` |
+| `LOGGING_LEVEL_COM_QKIT` | 日志级别 | `info` |
 
 > 密钥类用 secret manager（Vault / AWS Secrets Manager / 阿里云 KMS），不直接 .env。
 

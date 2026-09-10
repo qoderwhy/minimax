@@ -6,7 +6,7 @@
 
 ### 1.1 基础
 
-- JDK 17，必须开启 `-Xlint:all`
+- JDK 17（根 pom 用 `maven.compiler.source/target=17` 锁定）；`-Xlint:all` 为**规划项**（当前 pom 未开启）
 - 缩进 4 空格，禁止 Tab
 - 行宽 ≤ 120 字符
 - 文件编码 UTF-8
@@ -25,6 +25,8 @@
 | 包 | 全小写 | `com.qkit.system` |
 | 枚举 | 大驼峰；成员全大写 | `ErrorCode.USER_NOT_FOUND` |
 | 泛型 | 单字母大写 | `T` `K` `V` |
+
+> 各层（Entity / Mapper / Service / Controller / DTO / VO / Convert）的完整命名细则、DTO 与 VO 细分、导出 VO 例外、同名实体冲突处理见 `03-structure.md` 第 6 节（6.1 ~ 6.6）。
 
 ### 1.3 类与构造器
 
@@ -52,7 +54,7 @@
 
 - **必须** MapStruct
 - **禁止** `BeanUtils.copyProperties / Spring BeanUtils / Hutool BeanUtil.copy`
-- Convert 类放 `domain/convert/`，命名 `XxxConvert`
+- Convert 类放 `<module>/convert/`（如 `com.qkit.system.convert`），命名 `XxxConvert`
 
 ```java
 @Mapper(componentModel = "spring")
@@ -68,7 +70,7 @@ public interface UserConvert {
 - Controller 入参加 `@Valid`
 - DTO 字段加 `jakarta.validation` 注解：`@NotBlank @NotNull @Size @Email @Pattern`
 - 分组校验：`@Validated(SaveGroup.class)` + `@GroupSequence`
-- 业务校验放 Service / Manager 层（`Assert.notNull(...)` 抛 `BusinessException`）
+- 业务校验放 Service / Manager 层：`throw new BusinessException(ErrorCode.XXX)`，或用 `AssertUtil.notNull(obj, ErrorCode.XXX)` / `hasText` / `isTrue` / `equals`（内部同样抛 `BusinessException`）
 
 ### 1.7 异常
 
@@ -141,7 +143,7 @@ public interface UserConvert {
 
 | 类型 | 规范 | 示例 |
 |---|---|---|
-| 组件 | 大驼峰 .vue | `UserFormDialog.vue` |
+| 组件 | 大驼峰 .vue | `DictTag.vue` |
 | 组合式函数 | `use` 前缀 | `useCrud` |
 | 类型 / 接口 | 大驼峰 | `UserVO` |
 | 枚举 | 大驼峰；成员大驼峰 | `UserStatus.ENABLED` |
@@ -171,60 +173,70 @@ public interface UserConvert {
 - 类型与返回类型一致
 
 ```ts
-// api/system/user.ts
+// api/system/user.ts（类型与接口就近定义在同一文件）
 import request from '@/utils/request'
-import type { UserVO, UserSaveDTO, UserQueryDTO } from '@/types/system/user'
 
-export const pageUser = (params: UserQueryDTO) =>
-  request.get<R<UserVO[]>>({ url: '/admin-api/system/user/page', params })
+export interface UserItem { id: number; username: string; /* ... */ }
+export interface UserSave { id?: number; username: string; /* ... */ }
+export interface UserQuery { pageNum?: number; pageSize?: number; username?: string }
 
-export const createUser = (data: UserSaveDTO) =>
-  request.post<R<number>>({ url: '/admin-api/system/user/create', data })
+export function pageUser(params: UserQuery) {
+  return request.page<UserItem>({ url: '/admin-api/system/user/page', params })  // 返回 { list, total }
+}
 
-export const updateUser = (data: UserSaveDTO) =>
-  request.put<R<boolean>>({ url: '/admin-api/system/user/update', data })
+export function getUser(id: number) {
+  return request.get<UserItem>({ url: `/admin-api/system/user/detail/${id}` })
+}
 
-export const deleteUser = (ids: number[]) =>
-  request.del<R<boolean>>({ url: '/admin-api/system/user/delete', data: ids })
+export function saveUser(data: UserSave) {
+  return data.id
+    ? request.put<boolean>({ url: '/admin-api/system/user/update', data })
+    : request.post<number>({ url: '/admin-api/system/user/create', data })
+}
 
-export const getUserDetail = (id: number) =>
-  request.get<R<UserVO>>({ url: `/admin-api/system/user/detail/${id}` })
+export function deleteUser(id: number) {
+  return request.delete<void>({ url: '/admin-api/system/user/delete', data: [id] })
+}
 ```
+
+> `request.*` 返回的是**已解包**的业务数据（`get/post/put/delete` 取 `R.data`；`page` 取 `{ list, total }`），**不**包 `R<...>`。类型就近定义在 `api/<module>.ts`，不要从 `@/types/system/*` 导入（该目录不存在）。
 
 ### 3.6 列表页 useCrud
 
 ```ts
-// composables/useCrud.ts
-export function useCrud<T>(api: CrudApi<T>) {
-  const list = ref<T[]>([])
-  const total = ref(0)
-  const loading = ref(false)
-  const query = reactive({ pageNum: 1, pageSize: 10 })
-
-  const fetchData = async () => {
-    loading.value = true
-    try {
-      const res = await api.page(query)
-      list.value = res.data
-      total.value = res.total
-    } finally {
-      loading.value = false
-    }
+// composables/useCrud.ts（options 对象入参，基于 usePagination）
+export function useCrud<Row, Query extends PageQuery, Form>(options: UseCrudOptions<Row, Query, Form>) {
+  const pagination = usePagination<Row, Query>(options)
+  // 叠加弹窗 + 表单 + 增删改
+  return {
+    ...pagination,      // query / list / total / loading / fetch / onSearch / onReset
+    dialogVisible, dialogMode, form, formRef,
+    onAdd, onEdit, onSave, onDelete
   }
-
-  const handleQuery = () => { query.pageNum = 1; fetchData() }
-  const handleReset = () => { /* reset query */; handleQuery() }
-
-  onMounted(fetchData)
-  return { list, total, loading, query, fetchData, handleQuery, handleReset }
 }
 ```
 
+用法（列表页）：
+
+```ts
+const {
+  query, list, total, loading, fetch, onSearch, onReset,
+  dialogVisible, dialogMode, form, formRef, onAdd, onEdit, onSave, onDelete
+} = useCrud({
+  page: pageUser,          // (query) => Promise<{ list, total }>
+  save: saveUser,          // (form) => Promise
+  remove: deleteUser,      // (id) => Promise
+  defaultForm: () => ({ /* 初始表单 */ })
+})
+```
+
+> 关键点：`useCrud` 是 **options 对象**入参（不是 `api` 对象）；返回的 `query/list/total/loading/fetch/onSearch/onReset` 来自底层 `usePagination`。
+
 ### 3.7 字典
 
-- 用 `useDict('sys_user_sex')` 拉字典项
-- 组件 `<DictSelect dict-type="sys_user_sex" v-model="form.sex" />`
-- 列表展示用 `<DictTag dict-type="sys_user_sex" :value="row.sex" />`
+- 字典项通过 Pinia：`useDictStore().loadDict('sys_user_sex')`（按 type 懒加载并内存缓存）
+- 下拉组件 `<DictSelect dict-type="sys_user_sex" v-model="form.sex" />`
+- 列表标签 `<DictTag dict-type="sys_user_sex">{{ row.sex }}</DictTag>`（`DictTag` 通过**默认插槽**接收值，**无** `:value` prop）
 
 ## 4. 前端红线
 
@@ -253,8 +265,8 @@ export function useCrud<T>(api: CrudApi<T>) {
 
 ### 5.2 前端（本期不强求）
 
-- 框架：Vitest + Vue Test Utils
-- 只对核心 composables 和复杂组件写测试
+- **规划**：Vitest + Vue Test Utils（当前 `package.json` 未引入相关依赖，本期不落地）
+- 落地后只对核心 composables 和复杂组件写测试
 
 ## 6. 测试代码模板
 
@@ -281,12 +293,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class UserServiceImplTest {
+class UserServiceImplGuardTest {
 
     @Mock private UserMapper userMapper;
     @Mock private UserRoleService userRoleService;
@@ -302,17 +314,19 @@ class UserServiceImplTest {
         when(userMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
 
         // when + then
-        BusinessException ex = assertThrows(BusinessException.class,
-            () -> userService.create(dto));
-        assertEquals(ErrorCode.USER_EXISTS.getCode(), ex.getCode());
+        assertThatThrownBy(() -> userService.create(dto))
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(ErrorCode.USER_EXISTS.getMessage());
         verify(userMapper, never()).insert(any(User.class));
     }
 }
 ```
 
-> **要点**：`@ExtendWith(MockitoExtension.class)` + `@Mock/@InjectMocks`；业务异常用 `assertThrows` + 校验 `ErrorCode.getCode()`；Mapper 调用次数用 `verify(...).never()`。
+> **要点**：`@ExtendWith(MockitoExtension.class)` + `@Mock/@InjectMocks`；业务异常用 **AssertJ** `assertThatThrownBy(...).isInstanceOf(BusinessException.class).hasMessage(ErrorCode.XXX.getMessage())`；Mapper 调用次数用 `verify(...).never()`。真实样例见 `UserServiceImplGuardTest`、`DictServiceImplTest`、`PermissionServiceImplTest`、`DataScopeHandlerTest`。
 
 ### 6.2 Controller MockMvc（@WebMvcTest）
+
+> **规划模板**：当前仓库**没有** Controller 层测试（无 `@WebMvcTest` / MockMvc）。新增 Controller 测试时按以下模板。
 
 ```java
 package com.qkit.system.controller.admin;
@@ -362,7 +376,7 @@ class UserControllerTest {
 
 > **注意**：Sa-Token 在 `@WebMvcTest` 默认会拦截 `@SaCheckPermission`，测试时**必须**在配置类排除 `SaTokenInterceptor`，或用 `@AutoConfigureMockMvc(addFilters = false)`。
 
-### 6.3 Vue 组件测试（Vitest + happy-dom）
+### 6.3 Vue 组件测试（规划：Vitest + happy-dom）
 
 ```ts
 // views/system/user/__tests__/UserFormDialog.spec.ts
@@ -394,7 +408,7 @@ describe('UserFormDialog', () => {
 })
 ```
 
-> **要点**：`@vue/test-utils` 的 `mount` 必须放在 happy-dom 环境（vitest.config.ts 配 `environment: 'happy-dom'`）；Element Plus 组件在测试时如渲染失败，单独 mock `@/utils/request` 与 Element Plus 即可。
+> **要点**：**规划模板**，当前未引入 `vitest` / `@vue/test-utils` / `happy-dom` 依赖。落地后 `mount` 需运行在 happy-dom 环境（vitest.config.ts 配 `environment: 'happy-dom'`）；Element Plus 组件渲染失败时单独 mock `@/utils/request` 与 Element Plus 即可。
 
 ## 7. Git 与 Commit
 
@@ -439,13 +453,16 @@ Closes #12
 
 ## 9. 一键检查命令
 
-后端：
+后端（当前可用）：
 ```bash
-mvn -B checkstyle:check spotbugs:check
+mvn -B clean package          # 编译 + 测试
 ```
 
 前端：
 ```bash
-pnpm lint
-pnpm type-check   # vue-tsc --noEmit
+cd frontend
+npm run lint
+npm run type-check   # vue-tsc --noEmit
 ```
+
+> **规划**：`mvn checkstyle:check` / `spotbugs:check` 当前**未**配置对应插件，需先引入再启用。

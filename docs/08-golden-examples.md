@@ -13,34 +13,27 @@ qkit-system/
 │   ├── controller/admin/UserController.java
 │   ├── service/UserService.java
 │   ├── service/impl/UserServiceImpl.java
-│   ├── manager/UserManager.java              # 本例无（纯 CRUD 不需要）
 │   ├── mapper/UserMapper.java
 │   ├── domain/entity/User.java
 │   ├── domain/dto/UserSaveDTO.java
 │   ├── domain/dto/UserQueryDTO.java
+│   ├── domain/dto/UserResetPasswordDTO.java
 │   ├── domain/vo/UserVO.java
-│   ├── domain/vo/UserDetailVO.java
 │   └── convert/UserConvert.java
-└── src/main/resources/mapper/
-    └── UserMapper.xml                        # 本例无（简单查询走 LambdaQueryWrapper）
+└── src/main/resources/mapper/                # 本例无 XML（简单查询走 LambdaQueryWrapper）
 
 qkit-admin/src/main/resources/db/migration/
-└── V1.0.0__sys_user.sql
+└── V1.0.0__init.sql                          # 全库 DDL（含 sys_user）
 
 frontend/src/
-├── api/system/user.ts
-├── types/system/user.ts
-├── views/system/user/
-│   ├── index.vue
-│   └── components/
-│       ├── UserFormDialog.vue
-│       └── AssignRoleDialog.vue
+├── api/system/user.ts                        # 接口封装 + TS 类型（同文件）
+└── views/system/user/index.vue               # 列表页（表单/授权弹窗内联）
 ```
 
 ### 1.2 DDL
 
 ```sql
--- V1.0.0__sys_user.sql
+-- V1.0.0__init.sql（sys_user 节选）
 CREATE TABLE `sys_user` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `username` VARCHAR(30) NOT NULL DEFAULT '' COMMENT '登录名',
@@ -118,8 +111,8 @@ public class User extends BaseEntity {
 ```java
 package com.qkit.system.domain.dto;
 
-import com.qkit.common.group.SaveGroup;
-import com.qkit.common.group.UpdateGroup;
+import com.qkit.common.validation.group.SaveGroup;
+import com.qkit.common.validation.group.UpdateGroup;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -136,6 +129,7 @@ public record UserSaveDTO(
     @NotNull(message = "ID不能为空", groups = UpdateGroup.class) Long id,
     @NotBlank(message = "登录名不能为空", groups = SaveGroup.class)
     @Size(max = 30, message = "登录名长度不能超过30") String username,
+    @NotBlank(message = "密码不能为空", groups = SaveGroup.class)
     @Size(min = 8, max = 32, message = "密码长度必须在8-32位之间", groups = SaveGroup.class) String password,
     String nickname,
     String realName,
@@ -158,12 +152,12 @@ package com.qkit.system.domain.dto;
 import java.io.Serializable;
 
 /**
- * 用户查询条件 record。分页字段必填，默认值由 Controller 在调用前用 {@code withDefaults()} 注入。
- * <p>{@link #of(Long, Long)} 工厂用于 Controller 在绑定分页参数后构造完整 Query，
- * 避免在 service 内反复 null-check 分页字段。</p>
+ * 用户查询条件 record。分页字段可为空，由 Controller 用 {@code withPageDefaults()}
+ * 补齐，保留其余查询条件。
  */
 public record UserQueryDTO(
     String username,
+    String nickname,
     String phone,
     Integer status,
     Long deptId,
@@ -171,8 +165,11 @@ public record UserQueryDTO(
     Long pageSize
 ) implements Serializable {
 
-    public static UserQueryDTO of(Long pageNum, Long pageSize) {
-        return new UserQueryDTO(null, null, null, null, pageNum, pageSize);
+    /** 仅补齐分页默认值，保留其余查询条件 */
+    public UserQueryDTO withPageDefaults() {
+        return new UserQueryDTO(username, nickname, phone, status, deptId,
+                pageNum == null ? 1L : pageNum,
+                pageSize == null ? 10L : pageSize);
     }
 }
 ```
@@ -189,8 +186,8 @@ import java.util.List;
 
 /**
  * 用户 VO record。主键自增，Long 直接序列化为数字，无 JS 精度问题。
- * <p>字典翻译字段（{@code sexLabel / statusLabel}）由 Service 层填充；详情专用字段
- * （{@code roleIds}）由 detail 接口专用 VO {@link UserDetailVO} 提供。</p>
+ * <p>字典翻译字段（{@code sexLabel / statusLabel}）由 Service 层填充；{@code roleIds}
+ * 仅在 detail 接口填充，列表接口为 {@code null}。</p>
  */
 @Schema(description = "用户 VO")
 public record UserVO(
@@ -212,6 +209,7 @@ public record UserVO(
     String loginIp,
     LocalDateTime loginDate,
     LocalDateTime createTime,
+    String remark,
     List<Long> roleIds
 ) {
 }
@@ -224,15 +222,19 @@ package com.qkit.system.convert;
 
 import com.qkit.system.domain.dto.UserSaveDTO;
 import com.qkit.system.domain.entity.User;
-import com.qkit.system.domain.vo.UserDetailVO;
+import com.qkit.system.domain.vo.LoginUserVO;
 import com.qkit.system.domain.vo.UserVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring",
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
+        unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface UserConvert {
 
     UserConvert INSTANCE = Mappers.getMapper(UserConvert.class);
@@ -241,13 +243,13 @@ public interface UserConvert {
 
     List<UserVO> toVOList(List<User> list);
 
-    UserDetailVO toDetailVO(User entity);
-
     User toEntity(UserSaveDTO dto);
 
     /** 更新用转换器：忽略 password 字段，避免前端未传时覆盖原密码 */
     @Mapping(target = "password", ignore = true)
     User toUpdateEntity(UserSaveDTO dto);
+
+    LoginUserVO toLoginUserVO(User user);
 }
 ```
 
@@ -271,10 +273,13 @@ public interface UserMapper extends BaseMapper<User> {
 package com.qkit.system.service;
 
 import com.qkit.common.api.R;
-import com.qkit.system.domain.dto.UserSaveDTO;
+import com.qkit.system.domain.dto.PasswordDTO;
+import com.qkit.system.domain.dto.UserProfileUpdateDTO;
 import com.qkit.system.domain.dto.UserQueryDTO;
-import com.qkit.system.domain.vo.UserDetailVO;
+import com.qkit.system.domain.dto.UserSaveDTO;
+import com.qkit.system.domain.entity.User;
 import com.qkit.system.domain.vo.UserVO;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.List;
 
@@ -282,7 +287,13 @@ public interface UserService {
 
     R<List<UserVO>> page(UserQueryDTO query);
 
-    R<UserDetailVO> detail(Long id);
+    /** 按查询条件导出用户列表（EasyExcel 写入响应流） */
+    void export(UserQueryDTO query, HttpServletResponse response);
+
+    R<UserVO> detail(Long id);
+
+    /** 管理端详情：受数据权限约束，超出可见范围按「不存在」处理 */
+    R<UserVO> detailInScope(Long id);
 
     R<Long> create(UserSaveDTO dto);
 
@@ -293,15 +304,35 @@ public interface UserService {
     R<Boolean> resetPassword(Long userId, String newPassword);
 
     R<Boolean> assignRole(Long userId, List<Long> roleIds);
+
+    R<Boolean> changePassword(Long userId, PasswordDTO dto);
+
+    /** 当前登录用户完整资料（含部门、岗位、角色） */
+    R<UserVO> profile(Long userId);
+
+    /** 更新当前登录用户资料 */
+    R<Boolean> updateProfile(Long userId, UserProfileUpdateDTO dto);
+
+    /** 根据用户名查询（登录用） */
+    User getByUsername(String username);
+
+    /** 根据主键查询 */
+    User getById(Long id);
+
+    /** 更新登录信息 */
+    void updateLoginInfo(Long userId, String ip);
 }
 ```
 
 ### 1.10 ServiceImpl
 
+> 以下为对齐**真实签名**的精简示例；完整实现（导出 `export`、字段富化 `enrich`、自锁保护 `guardProtectedAccount`、数据权限等）见 `qkit-system/.../service/impl/UserServiceImpl.java`。
+
 ```java
 package com.qkit.system.service.impl;
 
 import cn.dev33.satoken.secure.BCrypt;
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -309,22 +340,24 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qkit.common.api.R;
 import com.qkit.common.api.ErrorCode;
 import com.qkit.common.exception.BusinessException;
+import com.qkit.framework.security.annotation.DataScope;
 import com.qkit.system.convert.UserConvert;
 import com.qkit.system.domain.dto.UserSaveDTO;
 import com.qkit.system.domain.dto.UserQueryDTO;
 import com.qkit.system.domain.entity.User;
-import com.qkit.system.domain.vo.UserDetailVO;
 import com.qkit.system.domain.vo.UserVO;
 import com.qkit.system.mapper.UserMapper;
 import com.qkit.system.service.UserRoleService;
 import com.qkit.system.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @Validated
 @RequiredArgsConstructor
@@ -335,6 +368,7 @@ public class UserServiceImpl implements UserService {
     private final UserConvert userConvert;
 
     @Override
+    @DataScope(table = "sys_user", deptColumn = "dept_id", userColumn = "create_by")
     public R<List<UserVO>> page(UserQueryDTO query) {
         Page<User> page = Page.of(query.pageNum(), query.pageSize());
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
@@ -349,20 +383,23 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public R<UserDetailVO> detail(Long id) {
+    public R<UserVO> detail(Long id) {
         User user = userMapper.selectById(id);
         if (user == null) throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        // record 不可变，通过构造器注入 roleIds
-        UserVO base = userConvert.toVO(user);
-        List<Long> roleIds = userRoleService.getRoleIdsByUserId(id);
-        UserDetailVO vo = new UserDetailVO(
-            base.id(), base.username(), base.nickname(), base.realName(),
-            base.email(), base.phone(), base.avatar(), base.sex(), base.sexLabel(),
-            base.deptId(), base.deptName(), base.postId(), base.postName(),
-            base.status(), base.statusLabel(), base.loginIp(), base.loginDate(),
-            base.createTime(), roleIds
-        );
+        UserVO vo = userConvert.toVO(user);
+        // record 不可变：用 roleIds 重建 VO（列表接口 roleIds 为 null，详情接口填充）
+        vo = new UserVO(vo.id(), vo.username(), vo.nickname(), vo.realName(),
+            vo.email(), vo.phone(), vo.avatar(), vo.sex(), vo.sexLabel(),
+            vo.deptId(), vo.deptName(), vo.postId(), vo.postName(),
+            vo.status(), vo.statusLabel(), vo.loginIp(), vo.loginDate(),
+            vo.createTime(), vo.remark(), userRoleService.getRoleIdsByUserId(id));
         return R.ok(vo);
+    }
+
+    @Override
+    public R<UserVO> detailInScope(Long id) {
+        // 管理端详情受数据权限约束：超出可见范围按「不存在」处理（完整实现见源码）
+        return detail(id);
     }
 
     @Override
@@ -376,6 +413,7 @@ public class UserServiceImpl implements UserService {
         // 2. 保存
         User user = userConvert.toEntity(dto);
         user.setPassword(BCrypt.hashpw(dto.password()));
+        if (user.getStatus() == null) user.setStatus(1);
         userMapper.insert(user);
         return R.ok(user.getId());
     }
@@ -385,6 +423,7 @@ public class UserServiceImpl implements UserService {
     public R<Boolean> update(UserSaveDTO dto) {
         User exist = userMapper.selectById(dto.id());
         if (exist == null) throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        // 自锁/内置账号保护：禁止停用或重命名 admin、禁止停用自己（完整实现见 guardProtectedAccount）
 
         // 用户名变更检查
         if (!exist.getUsername().equals(dto.username())) {
@@ -403,6 +442,10 @@ public class UserServiceImpl implements UserService {
     @Transactional(rollbackFor = Exception.class)
     public R<Boolean> delete(List<Long> ids) {
         if (CollUtil.isEmpty(ids)) throw new BusinessException(ErrorCode.BAD_REQUEST);
+        if (ids.contains(StpUtil.getLoginIdAsLong())) {
+            throw new BusinessException(ErrorCode.USER_CANNOT_DELETE_SELF);
+        }
+        // 内置管理员不可删；级联清理 user_role/user_post、强制下线、清权限缓存（完整实现见源码）
         userMapper.deleteBatchIds(ids);
         return R.ok(true);
     }
@@ -432,22 +475,30 @@ public class UserServiceImpl implements UserService {
 package com.qkit.system.controller.admin;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import cn.dev33.satoken.stp.StpUtil;
 import com.qkit.common.api.R;
-import com.qkit.common.group.SaveGroup;
-import com.qkit.common.group.UpdateGroup;
+import com.qkit.common.validation.group.SaveGroup;
+import com.qkit.common.validation.group.UpdateGroup;
 import com.qkit.framework.log.annotation.OperLog;
-import com.qkit.system.domain.dto.UserSaveDTO;
+import com.qkit.framework.repeat.annotation.RepeatSubmit;
+import com.qkit.system.domain.dto.PasswordDTO;
+import com.qkit.system.domain.dto.UserProfileUpdateDTO;
 import com.qkit.system.domain.dto.UserQueryDTO;
-import com.qkit.system.domain.vo.UserDetailVO;
+import com.qkit.system.domain.dto.UserResetPasswordDTO;
+import com.qkit.system.domain.dto.UserSaveDTO;
 import com.qkit.system.domain.vo.UserVO;
 import com.qkit.system.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Tag(name = "用户管理")
@@ -462,27 +513,23 @@ public class UserController {
     @GetMapping("/page")
     @SaCheckPermission("system:user:page")
     public R<List<UserVO>> page(UserQueryDTO query) {
-        // 分页字段兜底（GET 参数可能未传）
-        if (query.pageNum() == null || query.pageSize() == null) {
-            query = UserQueryDTO.of(
-                query.pageNum() == null ? 1L : query.pageNum(),
-                query.pageSize() == null ? 10L : query.pageSize()
-            );
-        }
+        query = query.withPageDefaults();
         return userService.page(query);
     }
 
-    @Operation(summary = "获取用户详情")
+    @Operation(summary = "用户详情")
     @GetMapping("/detail/{id}")
     @SaCheckPermission("system:user:detail")
-    public R<UserDetailVO> detail(@PathVariable Long id) {
-        return userService.detail(id);
+    public R<UserVO> detail(@PathVariable Long id) {
+        // 走受数据权限约束的查询，避免越权读取其他数据范围内的用户
+        return userService.detailInScope(id);
     }
 
     @Operation(summary = "新增用户")
     @PostMapping("/create")
     @SaCheckPermission("system:user:create")
     @OperLog(module = "用户管理", name = "新增用户")
+    @RepeatSubmit
     public R<Long> create(@RequestBody @Validated(SaveGroup.class) UserSaveDTO dto) {
         return userService.create(dto);
     }
@@ -491,6 +538,7 @@ public class UserController {
     @PutMapping("/update")
     @SaCheckPermission("system:user:update")
     @OperLog(module = "用户管理", name = "更新用户")
+    @RepeatSubmit
     public R<Boolean> update(@RequestBody @Validated(UpdateGroup.class) UserSaveDTO dto) {
         return userService.update(dto);
     }
@@ -499,6 +547,7 @@ public class UserController {
     @DeleteMapping("/delete")
     @SaCheckPermission("system:user:delete")
     @OperLog(module = "用户管理", name = "删除用户")
+    @RepeatSubmit
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return userService.delete(ids);
     }
@@ -507,71 +556,99 @@ public class UserController {
     @PutMapping("/reset-password")
     @SaCheckPermission("system:user:reset-password")
     @OperLog(module = "用户管理", name = "重置密码")
-    public R<Boolean> resetPassword(@RequestParam Long userId, @RequestParam String newPassword) {
-        return userService.resetPassword(userId, newPassword);
+    @RepeatSubmit
+    public R<Boolean> resetPassword(@RequestBody @Valid UserResetPasswordDTO dto) {
+        return userService.resetPassword(dto.userId(), dto.newPassword());
     }
 
     @Operation(summary = "分配角色")
     @PutMapping("/assign-role")
     @SaCheckPermission("system:user:assign-role")
     @OperLog(module = "用户管理", name = "分配角色")
+    @RepeatSubmit
     public R<Boolean> assignRole(@RequestParam Long userId, @RequestBody List<Long> roleIds) {
         return userService.assignRole(userId, roleIds);
+    }
+
+    @Operation(summary = "导出用户")
+    @GetMapping("/export")
+    @SaCheckPermission("system:user:export")
+    @OperLog(module = "用户管理", name = "导出用户")
+    public void export(UserQueryDTO query, HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        String fileName = URLEncoder.encode("用户列表", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+        userService.export(query, response);
+    }
+
+    // ==================== 个人中心（本人） ====================
+
+    @Operation(summary = "个人资料详情")
+    @GetMapping("/profile")
+    public R<UserVO> profile() {
+        return userService.profile(StpUtil.getLoginIdAsLong());
+    }
+
+    @Operation(summary = "更新个人资料")
+    @PutMapping("/profile")
+    @OperLog(module = "个人中心", name = "更新个人资料")
+    @RepeatSubmit
+    public R<Boolean> updateProfile(@RequestBody @Valid UserProfileUpdateDTO dto) {
+        return userService.updateProfile(StpUtil.getLoginIdAsLong(), dto);
+    }
+
+    @Operation(summary = "修改密码（本人）")
+    @PutMapping("/profile/password")
+    @OperLog(module = "个人中心", name = "修改密码")
+    @RepeatSubmit
+    public R<Boolean> changePassword(@RequestBody @Valid PasswordDTO dto) {
+        return userService.changePassword(StpUtil.getLoginIdAsLong(), dto);
     }
 }
 ```
 
-### 1.12 前端 types
+### 1.12 前端 types（就近定义在 api 文件）
 
 ```ts
-// types/system/user.ts
-export interface UserVO {
-  id: string
+// api/system/user.ts（类型就近定义；项目没有 types/system/user.ts）
+export interface UserItem {
+  id: number
   username: string
   nickname: string
-  realName: string
-  email: string
-  phone: string
-  avatar: string
-  sex: number
-  sexLabel?: string
-  deptId: string
-  deptName?: string
-  postId: string
-  postName?: string
-  status: number
-  statusLabel?: string
-  loginIp: string
-  loginDate: string
-  createTime: string
-}
-
-export interface UserDetailVO extends UserVO {
-  roleIds: string[]
-}
-
-export interface UserSaveDTO {
-  id?: string
-  username: string
-  password?: string
-  nickname?: string
-  realName?: string
+  phone?: string
   email?: string
-  phone?: string
-  sex?: number
-  deptId?: string
-  postId?: string
-  status?: number
-  remark?: string
+  status: number
+  deptId?: number
+  deptName?: string
+  postId?: number
+  postName?: string
+  createTime?: string
+  /** 仅 detail 接口返回，用于回显已分配角色 */
+  roleIds?: number[]
 }
 
-export interface UserQueryDTO {
+export interface UserSave {
+  id?: number
+  username: string
+  nickname: string
+  password?: string
+  phone?: string
+  email?: string
+  status: number
+  deptId?: number
+  postId?: number
+  roleIds: number[]
+}
+
+export interface UserQuery {
+  pageNum?: number
+  pageSize?: number
   username?: string
+  nickname?: string
   phone?: string
   status?: number
-  deptId?: string
-  pageNum: number
-  pageSize: number
+  deptId?: number
 }
 ```
 
@@ -580,154 +657,109 @@ export interface UserQueryDTO {
 ```ts
 // api/system/user.ts
 import request from '@/utils/request'
-import type { UserVO, UserDetailVO, UserSaveDTO, UserQueryDTO } from '@/types/system/user'
 
-export const pageUser = (params: UserQueryDTO) =>
-  request.get<R<UserVO[]>>({ url: '/admin-api/system/user/page', params })
+export function pageUser(params: UserQuery) {
+  return request.page<UserItem>({ url: '/admin-api/system/user/page', params })  // { list, total }
+}
 
-export const getUserDetail = (id: string) =>
-  request.get<R<UserDetailVO>>({ url: `/admin-api/system/user/detail/${id}` })
+export function getUser(id: number) {
+  return request.get<UserItem>({ url: `/admin-api/system/user/detail/${id}` })
+}
 
-export const createUser = (data: UserSaveDTO) =>
-  request.post<R<string>>({ url: '/admin-api/system/user/create', data })
+export function saveUser(data: UserSave): Promise<number | boolean> {
+  return data.id
+    ? request.put<boolean>({ url: '/admin-api/system/user/update', data })
+    : request.post<number>({ url: '/admin-api/system/user/create', data })
+}
 
-export const updateUser = (data: UserSaveDTO) =>
-  request.put<R<boolean>>({ url: '/admin-api/system/user/update', data })
-
-export const deleteUser = (ids: string[]) =>
-  request.del<R<boolean>>({ url: '/admin-api/system/user/delete', data: ids })
-
-export const resetPassword = (userId: string, newPassword: string) =>
-  request.put<R<boolean>>({
-    url: '/admin-api/system/user/reset-password',
-    params: { userId, newPassword }
-  })
-
-export const assignUserRole = (userId: string, roleIds: string[]) =>
-  request.put<R<boolean>>({
+export function assignRole(userId: number, roleIds: number[]) {
+  return request.put<boolean>({
     url: '/admin-api/system/user/assign-role',
     params: { userId },
     data: roleIds
   })
+}
+
+export function deleteUser(id: number) {
+  return request.delete<void>({ url: '/admin-api/system/user/delete', data: [id] })
+}
+
+export function resetUserPassword(id: number, password: string) {
+  return request.put<void>({
+    url: '/admin-api/system/user/reset-password',
+    data: { userId: id, newPassword: password }
+  })
+}
+
+export function exportUser(params: UserQuery) {
+  return request.download<Blob>({ url: '/admin-api/system/user/export', params })
+}
 ```
 
 ### 1.14 前端列表页（精简版）
 
 ```vue
-<!-- views/system/user/index.vue -->
+<!-- views/system/user/index.vue（精简示意；真实页面表单/授权弹窗内联在本文件） -->
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { pageUser, deleteUser, createUser, updateUser } from '@/api/system/user'
-import type { UserVO, UserQueryDTO, UserSaveDTO } from '@/types/system/user'
-import UserFormDialog from './components/UserFormDialog.vue'
+import { pageUser, saveUser, deleteUser } from '@/api/system/user'
+import type { UserItem, UserSave, UserQuery } from '@/api/system/user'
+import { useCrud } from '@/composables/useCrud'
 
-const list = ref<UserVO[]>([])
-const total = ref(0)
-const loading = ref(false)
-const query = reactive<UserQueryDTO>({ pageNum: 1, pageSize: 10 })
-
-const fetchData = async () => {
-  loading.value = true
-  try {
-    const res = await pageUser(query)
-    list.value = res.data
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleQuery = () => { query.pageNum = 1; fetchData() }
-const handleReset = () => {
-  Object.assign(query, { pageNum: 1, pageSize: 10, username: '', phone: '', status: undefined, deptId: undefined })
-  fetchData()
-}
-
-const formDialogRef = ref()
-const handleCreate = () => formDialogRef.value.open()
-const handleUpdate = (row: UserVO) => formDialogRef.value.open(row)
-const handleDelete = async (row: UserVO) => {
-  await ElMessageBox.confirm(`确认删除用户「${row.username}」？`, '提示', { type: 'warning' })
-  await deleteUser([row.id])
-  ElMessage.success('删除成功')
-  fetchData()
-}
-
-const onSaved = () => { fetchData() }
-fetchData()
+const {
+  query, list, total, loading, fetch, onSearch, onReset,
+  dialogVisible, dialogMode, form, formRef, onAdd, onEdit, onSave, onDelete
+} = useCrud<UserItem, UserQuery, UserSave>({
+  page: pageUser,                 // (query) => Promise<{ list, total }>
+  save: saveUser,                 // (form) => Promise
+  remove: deleteUser,             // (id) => Promise
+  defaultForm: () => ({ username: '', nickname: '', status: 1, roleIds: [] })
+})
 </script>
 
 <template>
   <div class="page">
-    <!-- 搜索栏 -->
-    <el-form :inline="true" :model="query" class="search-bar">
-      <el-form-item label="登录名">
-        <el-input v-model="query.username" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="手机号">
-        <el-input v-model="query.phone" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="状态">
-        <DictSelect v-model="query.status" dict-type="sys_common_status" clearable />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="handleQuery">查询</el-button>
-        <el-button @click="handleReset">重置</el-button>
-      </el-form-item>
-    </el-form>
-
-    <!-- 工具栏 -->
     <div class="toolbar">
-      <el-button v-permission="['system:user:create']" type="primary" @click="handleCreate">
-        新增用户
-      </el-button>
+      <el-button v-permission="'system:user:create'" type="primary" @click="onAdd">新增用户</el-button>
     </div>
 
-    <!-- 表格 -->
     <el-table v-loading="loading" :data="list" border stripe>
       <el-table-column prop="username" label="登录名" min-width="120" />
       <el-table-column prop="nickname" label="昵称" min-width="120" />
       <el-table-column prop="deptName" label="部门" min-width="120" />
       <el-table-column prop="phone" label="手机号" min-width="120" />
-      <el-table-column prop="statusLabel" label="状态" min-width="80">
+      <el-table-column label="状态" min-width="80">
         <template #default="{ row }">
-          <DictTag dict-type="sys_common_status" :value="row.status" />
+          <!-- DictTag 通过默认插槽接收字典值，无 :value prop -->
+          <DictTag dict-type="sys_common_status">{{ row.status }}</DictTag>
         </template>
       </el-table-column>
       <el-table-column prop="createTime" label="创建时间" min-width="160" />
       <el-table-column label="操作" min-width="220" fixed="right">
         <template #default="{ row }">
-          <el-button v-permission="['system:user:update']" type="primary" link @click="handleUpdate(row)">
-            编辑
-          </el-button>
-          <el-button v-permission="['system:user:delete']" type="danger" link @click="handleDelete(row)">
-            删除
-          </el-button>
+          <el-button v-permission="'system:user:update'" type="primary" link @click="onEdit(row)">编辑</el-button>
+          <el-button v-permission="'system:user:delete'" type="danger" link @click="onDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- 分页 -->
     <el-pagination
       v-model:current-page="query.pageNum"
       v-model:page-size="query.pageSize"
       :total="total"
       :page-sizes="[10, 20, 50, 100]"
       layout="total, sizes, prev, pager, next, jumper"
-      @current-change="fetchData"
-      @size-change="handleQuery"
+      @current-change="fetch"
+      @size-change="onSearch"
     />
 
-    <!-- 表单对话框 -->
-    <UserFormDialog ref="formDialogRef" @saved="onSaved" />
+    <!-- 表单弹窗（v-model="dialogVisible" / :model="form"）内联在本文件 -->
   </div>
 </template>
 ```
 
 ## 2. 端到端示例：部门管理（B 级 · 树形）
 
-> 与 §1 用户管理并列。**重点演示**：① `parent_id` 自引用树形查询（避免 Mapper XML 写 WITH RECURSIVE，详见 06 §4.1.4）；② 父级联删除校验（子部门 / 部门下用户）；③ 前端 `<el-tree>` + 懒加载。代码复用 §1 样板处只展示**树形特异部分**。
+> 与 §1 用户管理并列。**重点演示**：① `parent_id` 自引用树形查询（避免 Mapper XML 写 WITH RECURSIVE，详见 06 §4.1.4）；② 父级联删除校验（子部门 / 部门下用户）；③ 前端 `<el-table :tree-props>` 树形展示。代码复用 §1 样板处只展示**树形特异部分**。
 
 ### 2.1 涉及文件清单
 
@@ -738,17 +770,15 @@ qkit-system/
 │   ├── service/DeptService.java
 │   ├── service/impl/DeptServiceImpl.java
 │   ├── domain/entity/Dept.java
+│   ├── domain/dto/DeptSaveDTO.java
 │   ├── domain/vo/DeptTreeVO.java
 │   ├── domain/vo/DeptSimpleVO.java
 │   └── convert/DeptConvert.java
-└── src/main/resources/mapper/
-    └── DeptMapper.xml（仅本例需要，复杂子树过滤走 XML）
+└── src/main/resources/mapper/                # 无 XML（树在 Service 内构建）
 
 frontend/src/
-├── api/system/dept.ts
-├── types/system/dept.ts
-└── views/system/dept/
-    └── index.vue                              # el-tree + 工具栏
+├── api/system/dept.ts                        # 接口 + 类型（同文件）
+└── views/system/dept/index.vue               # el-table 树形（tree-props）
 ```
 
 ### 2.2 DDL
@@ -796,20 +826,33 @@ public class Dept extends BaseEntity {
 ```java
 package com.qkit.system.domain.vo;
 
+import com.qkit.system.domain.entity.Dept;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
-/** el-tree 数据源：label=name，value=id 字符串，children=子节点。 */
+/** 树节点：label=name，value=id 字符串；同时携带可编辑字段用于回显。 */
 @Schema(description = "部门树节点")
 public record DeptTreeVO(
     Long id,
     Long parentId,
-    String label,       // el-tree 节点显示（= name）
-    String value,       // el-tree 节点值（= id 字符串）
+    String label,
+    String value,
+    Integer sort,
+    String leader,
+    String phone,
+    String email,
+    Integer status,
     List<DeptTreeVO> children
 ) {
-    public static DeptTreeVO from(Long id, Long parentId, String name, List<DeptTreeVO> children) {
-        return new DeptTreeVO(id, parentId, name, String.valueOf(id), children);
+    public static DeptTreeVO from(Dept dept, List<DeptTreeVO> children) {
+        return new DeptTreeVO(dept.getId(), dept.getParentId(), dept.getName(),
+            String.valueOf(dept.getId()), dept.getSort(), dept.getLeader(),
+            dept.getPhone(), dept.getEmail(), dept.getStatus(), children);
+    }
+
+    /** 替换子节点并保留其余字段（数据权限过滤后重建树时使用） */
+    public DeptTreeVO withChildren(List<DeptTreeVO> children) {
+        return new DeptTreeVO(id, parentId, label, value, sort, leader, phone, email, status, children);
     }
 }
 ```
@@ -828,22 +871,23 @@ public record DeptSimpleVO(
 
 ```java
 @Mapper(componentModel = "spring",
-        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
+        unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface DeptConvert {
     DeptConvert INSTANCE = Mappers.getMapper(DeptConvert.class);
-    DeptSimpleVO toSimpleVO(Dept entity);
     List<DeptSimpleVO> toSimpleVOList(List<Dept> list);
-    DeptTreeVO toTreeVO(Dept entity);
+    DeptSimpleVO toSimpleVO(Dept entity);
 }
 ```
+
+> `DeptTreeVO` **不**经 MapStruct，由 Service 手工调用 `DeptTreeVO.from(dept, children)` 构建（树形递归填充 `children`）。
 
 ### 2.7 Mapper
 
 ```java
 @Mapper
 public interface DeptMapper extends BaseMapper<Dept> {
-    // 简单 CRUD 用 LambdaQueryWrapper；子树批量查询走 DeptMapper.xml
-    List<Dept> selectByNameLike(@Param("name") String name);
+    // 仅 BaseMapper；树形在 Service 内构建，无自定义方法、无 XML
 }
 ```
 
@@ -851,110 +895,114 @@ public interface DeptMapper extends BaseMapper<Dept> {
 
 ```java
 public interface DeptService {
-    /** 获取完整部门树（不带子节点懒加载） */
-    R<List<DeptTreeVO>> tree(DeptQueryDTO query);
+    /** 部门树（name 为空查全部；支持关键字过滤，保留命中节点及其祖先） */
+    R<List<DeptTreeVO>> tree(String name);
 
-    /** 下拉用简单列表 */
+    /** 下拉用简单列表（受数据权限约束） */
     R<List<DeptSimpleVO>> simpleList();
 
     R<Long> create(DeptSaveDTO dto);
     R<Boolean> update(DeptSaveDTO dto);
     R<Boolean> delete(List<Long> ids);
-
-    /** 关键：递归取子部门 id 集合（含自身），缓存 5 分钟。详见 06 §4.1.4 */
-    List<Long> getChildDeptIds(Long rootDeptId);
 }
 ```
 
 ### 2.9 ServiceImpl（**树形核心**）
 
 ```java
+@Slf4j
 @Service
 @Validated
 @RequiredArgsConstructor
 public class DeptServiceImpl implements DeptService {
 
     private final DeptMapper deptMapper;
-    private final UserMapper userMapper;          // 检查部门下用户
+    private final UserMapper userMapper;           // 检查部门下用户
     private final DeptConvert deptConvert;
-    private final RedisTemplate<String, List<Long>> redisTemplate;
-
-    private static final String DEPT_CHILD_KEY = "dept:child:";
+    private final DataScopeHelper dataScopeHelper; // 可见部门集合 + 缓存失效
 
     @Override
     @Transactional(readOnly = true)
-    public R<List<DeptTreeVO>> tree(DeptQueryDTO query) {
-        // 1. 全表（数据量小可接受；>5000 行建议缓存或按需懒加载）
-        List<Dept> all = deptMapper.selectList(null);
-        // 2. parent_id 分组成 Map<parentId, List<Dept>>
-        Map<Long, List<Dept>> byParent = all.stream()
-            .collect(Collectors.groupingBy(Dept::getParentId));
-        // 3. 递归构建树（从根节点 parent_id=0 开始）
-        List<DeptTreeVO> roots = byParent.getOrDefault(0L, List.of()).stream()
-            .map(d -> buildTree(d, byParent))
-            .toList();
-        return R.ok(roots);
+    public R<List<DeptTreeVO>> tree(String name) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        List<Dept> all = deptMapper.selectList(new LambdaQueryWrapper<Dept>().orderByAsc(Dept::getSort));
+        List<Dept> nodes = (name == null || name.isBlank()) ? all : withAncestors(all, name);
+        Map<Long, List<Dept>> byParent = nodes.stream()
+            .collect(Collectors.groupingBy(d -> d.getParentId() == null ? 0L : d.getParentId()));
+        List<DeptTreeVO> fullTree = buildTree(0L, byParent);
+        // 数据权限过滤必须在树构建之后：先裁剪会让子节点因父节点缺失而一起丢失
+        List<Long> visibleIds = dataScopeHelper.visibleDeptIds(userId);
+        Set<Long> visible = visibleIds != null ? new HashSet<>(visibleIds) : null;
+        return R.ok(visible != null ? filterTree(fullTree, visible) : fullTree);
     }
 
-    private DeptTreeVO buildTree(Dept dept, Map<Long, List<Dept>> byParent) {
-        List<DeptTreeVO> children = byParent.getOrDefault(dept.getId(), List.of()).stream()
-            .map(child -> buildTree(child, byParent))
-            .toList();
-        return DeptTreeVO.from(dept.getId(), dept.getParentId(), dept.getName(), children);
+    @Override
+    @Transactional(readOnly = true)
+    @DataScope(table = "sys_dept", deptColumn = "id")
+    public R<List<DeptSimpleVO>> simpleList() {
+        List<Dept> all = deptMapper.selectList(new LambdaQueryWrapper<Dept>()
+            .eq(Dept::getStatus, 1).orderByAsc(Dept::getSort));
+        return R.ok(deptConvert.toSimpleVOList(all));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public R<Boolean> delete(List<Long> ids) {
         if (CollUtil.isEmpty(ids)) throw new BusinessException(ErrorCode.BAD_REQUEST);
+        // 父子映射只构建一次，避免在循环内重复全表加载
+        List<Dept> all = deptMapper.selectList(null);
+        Map<Long, List<Long>> parentToChildren = all.stream().collect(Collectors.groupingBy(
+            Dept::getParentId, Collectors.mapping(Dept::getId, Collectors.toList())));
         for (Long id : ids) {
-            // 1. 检测子部门
-            List<Long> children = getChildDeptIds(id);
-            if (children.size() > 1) throw new BusinessException(ErrorCode.DEPT_HAS_CHILDREN);
-            // 2. 检测部门下用户
-            Long userCount = userMapper.selectCount(
-                new LambdaQueryWrapper<User>().eq(User::getDeptId, id));
+            if (countChildren(id, parentToChildren) > 0) throw new BusinessException(ErrorCode.DEPT_HAS_CHILDREN);
+            Long userCount = userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getDeptId, id));
             if (userCount > 0) throw new BusinessException(ErrorCode.DEPT_HAS_USER);
         }
         deptMapper.deleteBatchIds(ids);
-        // 3. 清缓存
-        ids.forEach(id -> redisTemplate.delete(DEPT_CHILD_KEY + id));
+        // 事务提交后再失效缓存，避免提交前被并发回填脏数据
+        TransactionUtils.afterCommit(dataScopeHelper::invalidateDeptCache);
         return R.ok(true);
     }
 
-    @Override
-    public List<Long> getChildDeptIds(Long rootDeptId) {
-        String key = DEPT_CHILD_KEY + rootDeptId;
-        List<Long> cached = redisTemplate.opsForValue().get(key);
-        if (cached != null) return cached;
-
-        List<Dept> all = deptMapper.selectList(null);
-        Map<Long, List<Long>> parentToChildren = all.stream()
-            .collect(Collectors.groupingBy(
-                Dept::getParentId,
-                Collectors.mapping(Dept::getId, Collectors.toList())));
-        // 自下而上反查
-        List<Long> result = new ArrayList<>();
-        Deque<Long> stack = new ArrayDeque<>();
-        stack.push(rootDeptId);
-        while (!stack.isEmpty()) {
-            Long id = stack.pop();
-            result.add(id);
-            List<Long> kids = parentToChildren.getOrDefault(id, List.of());
-            kids.forEach(stack::push);
-        }
-        redisTemplate.opsForValue().set(key, result, Duration.ofMinutes(5));
-        return result;
+    /** 校验上级部门合法：沿目标父部门向上回溯，命中自身说明目标父部门位于自己的子树中 */
+    private void validateParent(Long id, Long parentId) {
+        // update 中调用；命中抛 ErrorCode.DEPT_PARENT_INVALID（完整实现见源码）
     }
 
-    // create / update / simpleList 略，按 §1.10 模式套
+    private int countChildren(Long rootId, Map<Long, List<Long>> parentToChildren) {
+        Deque<Long> stack = new ArrayDeque<>();
+        stack.push(rootId);
+        int count = 0;
+        while (!stack.isEmpty()) {
+            Long id = stack.pop();
+            count++;
+            parentToChildren.getOrDefault(id, new ArrayList<>()).forEach(stack::push);
+        }
+        return count - 1;   // 排除自身
+    }
+
+    private List<DeptTreeVO> filterTree(List<DeptTreeVO> nodes, Set<Long> visible) {
+        return nodes.stream()
+            .filter(n -> visible.contains(n.id()))
+            .map(n -> n.withChildren(filterTree(n.children(), visible)))
+            .collect(Collectors.toList());
+    }
+
+    private List<DeptTreeVO> buildTree(Long parentId, Map<Long, List<Dept>> byParent) {
+        return byParent.getOrDefault(parentId, List.of()).stream()
+            .map(d -> DeptTreeVO.from(d, buildTree(d.getId(), byParent)))
+            .toList();
+    }
+
+    // withAncestors（关键字过滤保留祖先）、create / update / simpleList 完整实现见源码
 }
 ```
 
 > **关键设计**：
 > - **避免在 Mapper XML 写 `WITH RECURSIVE`**：06 §4.1.4 反例明确禁止（会触发 MyBatis-Plus 拦截器死循环）。子树在 Service 层 Java 内存里递归，安全。
-> - **缓存粒度**：每个部门 id 单独缓存其子树，避免全表缓存爆炸。
-> - **级联删除**：先查子部门 → 抛 DEPT_HAS_CHILDREN；再查用户 → 抛 DEPT_HAS_USER。**不**做物理级联（保留用户可重新分配部门）。
+> - **数据权限**：先构建完整树，再按 `DataScopeHelper.visibleDeptIds(userId)` 用 `filterTree` 裁剪；先裁剪会因父节点缺失而丢失子树。可见部门集合由 `DataScopeHelper` 统一缓存，写操作后 `invalidateDeptCache`。
+> - **缓存失效时机**：用 `TransactionUtils.afterCommit(...)` 在事务提交后失效，避免提交前被并发回填脏数据。
+> - **级联删除**：先查子部门 → 抛 `DEPT_HAS_CHILDREN`；再查用户 → 抛 `DEPT_HAS_USER`。**不**做物理级联（保留用户可重新分配部门）。
 
 ### 2.10 Controller
 
@@ -967,11 +1015,11 @@ public class DeptController {
 
     private final DeptService deptService;
 
-    @Operation(summary = "查询部门树")
+    @Operation(summary = "部门树")
     @GetMapping("/tree")
     @SaCheckPermission("system:dept:tree")
-    public R<List<DeptTreeVO>> tree(DeptQueryDTO query) {
-        return deptService.tree(query);
+    public R<List<DeptTreeVO>> tree(@RequestParam(required = false) String name) {
+        return deptService.tree(name);
     }
 
     @Operation(summary = "部门下拉")
@@ -985,6 +1033,7 @@ public class DeptController {
     @PostMapping("/create")
     @SaCheckPermission("system:dept:create")
     @OperLog(module = "部门管理", name = "新增部门")
+    @RepeatSubmit
     public R<Long> create(@RequestBody @Validated(SaveGroup.class) DeptSaveDTO dto) {
         return deptService.create(dto);
     }
@@ -993,6 +1042,7 @@ public class DeptController {
     @PutMapping("/update")
     @SaCheckPermission("system:dept:update")
     @OperLog(module = "部门管理", name = "更新部门")
+    @RepeatSubmit
     public R<Boolean> update(@RequestBody @Validated(UpdateGroup.class) DeptSaveDTO dto) {
         return deptService.update(dto);
     }
@@ -1001,6 +1051,7 @@ public class DeptController {
     @DeleteMapping("/delete")
     @SaCheckPermission("system:dept:delete")
     @OperLog(module = "部门管理", name = "删除部门")
+    @RepeatSubmit
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return deptService.delete(ids);
     }
@@ -1010,34 +1061,36 @@ public class DeptController {
 ### 2.11 前端 types
 
 ```ts
-// types/system/dept.ts
-export interface DeptTreeVO {
-  id: string
-  parentId: string
+// api/system/dept.ts（类型就近定义）
+/** 部门树节点（对应后端 DeptTreeVO，label 为部门名称） */
+export interface DeptTreeItem {
+  id: number
+  parentId: number
   label: string
-  value: string
-  children?: DeptTreeVO[]
-}
-
-export interface DeptSimpleVO {
-  id: string
-  name: string
-  parentId: string
-}
-
-export interface DeptSaveDTO {
-  id?: string
-  name: string
-  parentId?: string
   sort?: number
   leader?: string
   phone?: string
   email?: string
   status?: number
+  children?: DeptTreeItem[]
 }
 
-export interface DeptQueryDTO {
-  name?: string
+/** 部门下拉项（对应后端 DeptSimpleVO，name 为部门名称） */
+export interface DeptSimpleItem {
+  id: number
+  name: string
+  parentId: number
+}
+
+export interface DeptSave {
+  id?: number
+  name: string
+  parentId: number
+  sort: number
+  leader?: string
+  phone?: string
+  email?: string
+  status: number
 }
 ```
 
@@ -1046,113 +1099,99 @@ export interface DeptQueryDTO {
 ```ts
 // api/system/dept.ts
 import request from '@/utils/request'
-import type { DeptTreeVO, DeptSimpleVO, DeptSaveDTO, DeptQueryDTO } from '@/types/system/dept'
 
-export const treeDept = (q: DeptQueryDTO) =>
-  request.get<R<DeptTreeVO[]>>({ url: '/admin-api/system/dept/tree', params: q })
+export function treeDept() {
+  return request.get<DeptTreeItem[]>({ url: '/admin-api/system/dept/tree' })
+}
 
-export const simpleDeptList = () =>
-  request.get<R<DeptSimpleVO[]>>({ url: '/admin-api/system/dept/simple-list' })
+export function listDept() {
+  return request.get<DeptSimpleItem[]>({ url: '/admin-api/system/dept/simple-list' })
+}
 
-export const createDept = (data: DeptSaveDTO) =>
-  request.post<R<string>>({ url: '/admin-api/system/dept/create', data })
+export function saveDept(data: DeptSave) {
+  return data.id
+    ? request.put<void>({ url: '/admin-api/system/dept/update', data })
+    : request.post<void>({ url: '/admin-api/system/dept/create', data })
+}
 
-export const updateDept = (data: DeptSaveDTO) =>
-  request.put<R<boolean>>({ url: '/admin-api/system/dept/update', data })
-
-export const deleteDept = (ids: string[]) =>
-  request.del<R<boolean>>({ url: '/admin-api/system/dept/delete', data: ids })
+export function deleteDept(id: number) {
+  return request.delete<void>({ url: '/admin-api/system/dept/delete', data: [id] })
+}
 ```
 
 ### 2.13 前端树形页（el-tree + 工具栏）
 
 ```vue
-<!-- views/system/dept/index.vue -->
+<!-- views/system/dept/index.vue（精简示意；真实页面用 el-table 的 tree-props 展示树） -->
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { treeDept, simpleDeptList, createDept, updateDept, deleteDept } from '@/api/system/dept'
-import type { DeptTreeVO, DeptSaveDTO } from '@/types/system/dept'
+import { treeDept, deleteDept } from '@/api/system/dept'
+import type { DeptTreeItem } from '@/api/system/dept'
 
-const treeData = ref<DeptTreeVO[]>([])
-const expandedKeys = ref<number[]>([])
+const treeData = ref<DeptTreeItem[]>([])
 const loading = ref(false)
 
 const fetchTree = async () => {
   loading.value = true
   try {
-    const res = await treeDept({})
-    treeData.value = res.data
+    treeData.value = await treeDept()     // 直接返回列表（已解包）
   } finally { loading.value = false }
 }
 
-const handleAppend = (parentNode: DeptTreeVO) => {
-  // 打开表单弹窗，parentId=parentNode.id
-}
-
-const handleDelete = async (node: DeptTreeVO) => {
+const handleDelete = async (node: DeptTreeItem) => {
   await ElMessageBox.confirm(`确认删除部门「${node.label}」？`, '提示', { type: 'warning' })
-  await deleteDept([node.id])
+  await deleteDept(node.id)
   ElMessage.success('删除成功')
   fetchTree()
 }
 
-onMounted(() => {
-  fetchTree()
-  // 展开第一层
-  expandedKeys.value = treeData.value.map(d => Number(d.id))
-})
+onMounted(fetchTree)
 </script>
 
 <template>
   <div class="page">
     <div class="toolbar">
-      <el-button v-permission="['system:dept:create']" type="primary" @click="handleAppend(null)">
+      <el-button v-permission="'system:dept:create'" type="primary" @click="/* 打开表单弹窗，parentId=0 */">
         新增顶级部门
       </el-button>
     </div>
-    <el-tree
+
+    <!-- 用 el-table 的 tree-props 展示树形，row-key 用 id -->
+    <el-table
       v-loading="loading"
       :data="treeData"
-      :props="{ label: 'label', children: 'children' }"
-      node-key="value"
-      :default-expanded-keys="expandedKeys.map(String)"
-      :expand-on-click-node="false"
+      row-key="id"
+      border
+      default-expand-all
+      :tree-props="{ children: 'children' }"
     >
-      <template #default="{ node, data }">
-        <span class="tree-node">
-          <span>{{ node.label }}</span>
-          <span class="actions">
-            <el-button v-permission="['system:dept:create']" type="primary" link
-              @click="handleAppend(data)">新增下级</el-button>
-            <el-button v-permission="['system:dept:update']" type="primary" link
-              @click="handleUpdate(data)">编辑</el-button>
-            <el-button v-permission="['system:dept:delete']" type="danger" link
-              @click="handleDelete(data)">删除</el-button>
-          </span>
-        </span>
-      </template>
-    </el-tree>
+      <el-table-column prop="label" label="部门名称" min-width="200" />
+      <el-table-column prop="leader" label="负责人" min-width="120" />
+      <el-table-column prop="phone" label="联系电话" min-width="140" />
+      <el-table-column label="操作" min-width="220" fixed="right">
+        <template #default="{ row }">
+          <el-button v-permission="'system:dept:create'" type="primary" link @click="/* 新增下级 */">新增下级</el-button>
+          <el-button v-permission="'system:dept:update'" type="primary" link @click="/* 编辑 */">编辑</el-button>
+          <el-button v-permission="'system:dept:delete'" type="danger" link @click="handleDelete(row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
   </div>
 </template>
-
-<style scoped>
-.tree-node { flex: 1; display: flex; justify-content: space-between; align-items: center; }
-.actions { opacity: 0; }
-.tree-node:hover .actions { opacity: 1; }
-</style>
 ```
 
-> **注意**：`node-key` 用 `value`（string），`:default-expanded-keys` 必须转 `String[]`，否则 Element Plus 会因类型不匹配报错。
+> **注意**：部门页用 **`<el-table :tree-props="{ children: 'children' }" row-key="id">`** 展示树（**不是** `<el-tree>`）；`DeptTreeItem` **无** `value` 字段。
 
 ### 2.14 复制此示例的 checklist
 
 - [ ] DDL 含 `parent_id` 自引用 + `idx_parent_id` 索引
-- [ ] Convert 补 `nullValuePropertyMappingStrategy = IGNORE`（见 03 §A.2）
-- [ ] `getChildDeptIds` 加缓存，避免每次递归扫全表
-- [ ] `delete` 校验子部门 + 部门下用户，按顺序抛 `DEPT_HAS_CHILDREN` / `DEPT_HAS_USER`
-- [ ] Controller 5 个方法全部 `@SaCheckPermission`，按 06 §10.1 字典表 perm 字符串
-- [ ] 前端 `:default-expanded-keys` 显式 `String[]`
+- [ ] Convert 带 `nullValuePropertyMappingStrategy = IGNORE` + `unmappedTargetPolicy = IGNORE`（见 03 §A.2）
+- [ ] 树在 Service 内**内存构建**（`DeptTreeVO.from`），禁止在 Mapper XML 写 `WITH RECURSIVE`
+- [ ] 数据权限：树**先构建后裁剪**（`filterTree`），否则父节点缺失会丢整棵子树
+- [ ] `delete` 校验子部门 + 部门下用户，抛 `DEPT_HAS_CHILDREN` / `DEPT_HAS_USER`；`update` 校验 `DEPT_PARENT_INVALID`
+- [ ] Controller 5 个方法全部 `@SaCheckPermission`，写接口加 `@RepeatSubmit`
+- [ ] 前端用 `<el-table :tree-props="{ children: 'children' }" row-key="id">` 展示树
 
 ## 3. A 级示例指引（仅占位）
 

@@ -16,7 +16,7 @@ import lombok.Setter;
 @Setter
 @RequiredArgsConstructor
 @TableName("sys_config")
-public class SysConfig extends BaseEntity {
+public class Config extends BaseEntity {
 
     @TableId(type = IdType.AUTO)
     private Long id;

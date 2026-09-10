@@ -20,7 +20,7 @@ import com.qkit.system.domain.vo.LoginUserVO;
 import com.qkit.system.domain.vo.LoginVO;
 import com.qkit.system.log.LoginLogRecorder;
 import com.qkit.system.service.AuthService;
-import com.qkit.system.service.SysConfigService;
+import com.qkit.system.service.ConfigService;
 import com.qkit.system.service.UserService;
 import com.qkit.system.enums.DataScopeEnum;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
     private final PermissionService permissionService;
     private final LoginLogRecorder loginLogRecorder;
     private final UserConvert userConvert;
-    private final SysConfigService sysConfigService;
+    private final ConfigService configService;
 
     @Override
     public R<CaptchaVO> captcha() {
@@ -68,11 +68,11 @@ public class AuthServiceImpl implements AuthService {
     public R<LoginVO> login(LoginDTO dto, String clientIp) {
         // 1. 校验失败次数（用户名 + 来源 IP 双维度，阈值取自系统参数）
         loginRateLimiter.validate(dto.username(), clientIp,
-                sysConfigService.getInt(RETRY_LIMIT_KEY, SecurityConstants.MAX_LOGIN_FAIL_COUNT),
-                sysConfigService.getInt(IP_RETRY_LIMIT_KEY, SecurityConstants.MAX_LOGIN_FAIL_IP_COUNT));
+                configService.getInt(RETRY_LIMIT_KEY, SecurityConstants.MAX_LOGIN_FAIL_COUNT),
+                configService.getInt(IP_RETRY_LIMIT_KEY, SecurityConstants.MAX_LOGIN_FAIL_IP_COUNT));
 
         // 2. 校验图形验证码（可通过 sys.login.captchaEnabled 关闭，默认强制开启）
-        if (sysConfigService.getBoolean(CAPTCHA_ENABLED_KEY, true)) {
+        if (configService.getBoolean(CAPTCHA_ENABLED_KEY, true)) {
             if (StrUtil.isBlank(dto.captchaId())) {
                 loginLogRecorder.record(null, dto.username(), clientIp, 0, "缺少验证码");
                 throw new BusinessException(ErrorCode.CAPTCHA_REQUIRED);

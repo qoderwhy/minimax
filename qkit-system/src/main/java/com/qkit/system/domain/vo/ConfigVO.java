@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 
 @Schema(description = "系统参数配置 VO")
-public record SysConfigVO(
+public record ConfigVO(
         Long id,
         String configName,
         String configKey,

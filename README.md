@@ -14,6 +14,7 @@
 - knife4j 4.5.0 + springdoc-openapi 2.5.0（接口文档）
 - Hutool 5.8.32（工具集）
 - easy-captcha 1.6.2（图形验证码）
+- EasyExcel 3.3.4（Excel 导入导出，poi 5.2.5）
 - BCrypt（密码加密）
 
 ### 前端
@@ -32,27 +33,30 @@ qkit/
 ├── pom.xml                       根 POM（依赖管理）
 ├── qkit-common/                  公共模块（实体基类、异常、工具）
 │   ├── api/                      R、ErrorCode
-│   ├── exception/                业务异常 + 全局处理
+│   ├── exception/                BusinessException / SystemException + 全局处理
 │   ├── entity/                   BaseEntity
-│   └── util/                     IdGenerator、AssertUtil
+│   ├── validation/group/         SaveGroup / UpdateGroup / DefaultGroup
+│   └── util/                     AssertUtil、TimeUtil、WebUtil
 ├── qkit-framework/               框架模块（中间件、配置）
-│   ├── mybatis/                  MyBatis-Plus 配置
+│   ├── mybatis/                  MyBatis-Plus 配置（含自动填充）
 │   ├── redis/                    Redis 配置
-│   ├── web/                      CORS、WebMvc
-│   ├── security/                 Sa-Token 配置
+│   ├── web/                      CORS、WebMvc、TraceId
+│   ├── security/                 Sa-Token 配置 + @DataScope 注解
 │   ├── log/                      @OperLog + AOP
+│   ├── repeat/                   @RepeatSubmit 防重复提交
+│   ├── jackson/                  Jackson 时间序列化
+│   ├── config/                   OpenApiConfig（Knife4j）
 │   ├── captcha/                  验证码工具
 │   └── ratelimit/                登录限流
-├── qkit-system/                  业务模块（9 个）
-│   ├── auth/                     登录、注销、Me、权限
-│   ├── user/                     用户 CRUD + 重置密码
-│   ├── role/                     角色 CRUD + 菜单授权
-│   ├── dept/                     部门树 CRUD
-│   ├── post/                     岗位 CRUD
-│   ├── menu/                     菜单树 + 路由
-│   ├── dict/                     字典类型 + 字典项 + Redis 缓存
-│   ├── operlog/                  操作日志
-│   └── loginlog/                 登录日志
+├── qkit-system/                  系统管理业务（分层目录）
+│   ├── controller/admin/         10 个 Controller（auth/user/role/dept/post/menu/dict/config/oper-log/login-log）
+│   ├── service/ + impl/          业务接口与实现
+│   ├── mapper/                   MyBatis-Plus Mapper
+│   ├── domain/{entity,dto,vo}/   实体 / 入参 / 出参
+│   ├── convert/                  MapStruct 转换器
+│   ├── enums/                    DataScopeEnum / MenuTypeEnum
+│   ├── security/                 StpInterfaceImpl + datascope/
+│   └── log/                      日志落库实现
 ├── qkit-admin/                   启动模块
 │   ├── ScaffoldApplication.java
 │   ├── application.yml
@@ -77,7 +81,7 @@ qkit/
 
 ### 1. 环境要求
 - JDK 17+（推荐 Temurin）
-- Maven 3.9+
+- Maven 3.8+
 - Node.js 20+
 - MySQL 8.0+
 - Redis 7.x+
@@ -88,7 +92,7 @@ qkit/
 CREATE DATABASE qkit DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-修改 `qkit-admin/src/main/resources/application-dev.yml` 中的 `spring.datasource` 和 `spring.redis` 配置。
+修改 `qkit-admin/src/main/resources/application-dev.yml` 中的 `spring.datasource` 和 `spring.data.redis` 配置（默认数据库 `root/root`，Redis 无密码）。
 
 ### 3. 启动后端
 
@@ -201,7 +205,7 @@ docker compose up -d
 
 ## 八、版本
 
-当前版本：**v0.1.0**（脚手架 MVP）
+当前版本：**1.0.0-SNAPSHOT**（脚手架 MVP，以根 `pom.xml` 为准）
 
 ## 九、License
 

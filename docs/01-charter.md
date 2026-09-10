@@ -50,7 +50,7 @@
 
 **后端**：Spring Boot 3.2.x + MyBatis-Plus 3.5.x + Sa-Token 1.39.0 + MySQL 8 + Redis 7 + MapStruct + Knife4j
 **前端**：Vue 3.4 + TypeScript 5 + Vite 5 + Element Plus 2.8 + Pinia 2 + Vue Router 4 + Axios
-**构建**：Maven 3.8+（多模块）+ pnpm 9+
+**构建**：Maven 3.8+（多模块）+ npm（随 Node 20 LTS）
 **JDK / Node**：JDK 17 / Node 20 LTS
 **工具**：Docker Compose（MySQL + Redis 一键起）、Hutool 工具库、Flyway 数据库版本化
 
@@ -59,15 +59,14 @@
 ```
 qkit/
 ├── pom.xml                 # 根 POM，dependencyManagement 锁版本
-├── qkit-admin/          # 启动模块（Controller 聚合、application.yml、main 入口）
-├── qkit-common/         # 通用层：R/异常/常量/注解/工具/枚举
-├── qkit-framework/      # 框架层：MyBatis-Plus/Sa-Token/Redis/Web/AOP/审计 配置
-├── qkit-system/         # 系统管理：用户/角色/部门/岗位/菜单/字典/日志
-├── frontend/               # 前端工程（pnpm）
-├── deploy/                 # docker-compose / nginx / 初始化 SQL
-├── sql/                    # 旧路径，迁移到 deploy/db/（兼容）
+├── qkit-admin/          # 启动模块（Controller 聚合、application.yml、db/migration、main 入口）
+├── qkit-common/         # 通用层：R/异常/错误码/常量/工具/校验分组/日志 SPI
+├── qkit-framework/      # 框架层：MyBatis-Plus/Sa-Token/Redis/Jackson/Web/AOP/审计 配置
+├── qkit-system/         # 系统管理：用户/角色/部门/岗位/菜单/字典/参数/日志
+├── frontend/               # 前端工程（npm）
+├── deploy/                 # docker-compose / docker(Dockerfile) / nginx
 ├── docs/                   # 本文档集
-└── scripts/                # 一次性脚本（数据修复、清理等）
+└── scripts/                # 本地启动 / 部署脚本（dev.sh、dev.bat、deploy.sh）
 ```
 
 > 详细分层、包结构、命名规范见 `03-structure.md`。
@@ -88,11 +87,11 @@ qkit/
 ### 6.1 工程层面
 
 - [ ] `mvn -B clean package` 在 JDK 17 下零警告通过
-- [ ] `pnpm install && pnpm build` 通过
-- [ ] `docker compose up -d` 一次性起 MySQL 8 + Redis 7
+- [ ] `npm install && npm run build` 通过（`frontend/`）
+- [ ] `cd deploy && docker compose up -d` 一次编排 MySQL 8 + Redis 7 + backend + frontend
 - [ ] 启动脚本（`./scripts/dev.sh` 或 IDE）能拉起后端，监听 8080
-- [ ] 前端 `pnpm dev` 起 dev server 监听 5173
-- [ ] 前端 `pnpm build` 产物可由 Spring Boot 静态托管或 Nginx 部署
+- [ ] 前端 `npm run dev` 起 dev server 监听 5173
+- [ ] 前端 `npm run build` 产物可由 Spring Boot 静态托管或 Nginx 部署
 
 ### 6.2 功能层面（冒烟用例）
 
@@ -111,7 +110,7 @@ qkit/
 
 ### 6.3 质量层面
 
-- [ ] 后端 Controller 全部带 `@Operation`（Knife4j 文档可访问 `/swagger-ui`）
+- [ ] 后端 Controller 全部带 `@Operation`（Knife4j 文档可访问 `/doc.html`）
 - [ ] 全部 Service 方法带 `@Transactional` 边界（只读除外）
 - [ ] 全局异常统一封装为 `R.fail(code, msg)`，前端按 code 弹 ElMessage
 - [ ] 跨域配置正确，前端 dev 跨域 8080 成功

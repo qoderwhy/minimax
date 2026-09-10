@@ -21,9 +21,11 @@
 | API 文档 | springdoc-openapi + knife4j | springdoc **2.5.0** / knife4j **4.5.0** | 禁 Swagger 2 / Springfox |
 | 工具 | Lombok | **1.18.34** | DTO/VO **不**用 Lombok（直接用 record）；Entity / Domain 禁 `@Data` |
 | 密码加密 | Sa-Token 内置 BCrypt | — | 不自实现 |
-| 数据库版本化 | Flyway | **9.22.3**（避开 10.x 二次开源 License 变更；与 Boot 3.2 默认管理版本解耦） | `db/migration/V*.sql` |
+| 图形验证码 | easy-captcha | **1.6.2** | 登录验证码生成（框架层 `captcha/`） |
+| 导入导出 | easyexcel | **3.3.4** | Excel 导出（如用户导出）；`poi` **5.2.5** 为其传递依赖 |
+| 数据库版本化 | Flyway | **9.22.3**（避开 10.x 二次开源 License 变更；与 Boot 3.2 默认管理版本解耦） | `db/migration/V*.sql`；**dev 默认关闭**（`spring.flyway.enabled=false`），prod 开启 |
 | 健康检查 | spring-boot-starter-actuator | 随 Boot | 提供 `/actuator/health`（10 §6.1）；**不**暴露全部端点，需显式 `management.endpoints.web.exposure.include` |
-| 监控指标（可选） | micrometer-registry-prometheus | 随 Boot | 暴露 `/actuator/prometheus`（10 §6.3）；本期不强制接 Prometheus |
+| 监控指标（规划） | micrometer-registry-prometheus | **待引入** | 当前 pom **未**引入依赖；`application.yml` 已将 `prometheus` 列入 `exposure.include`，补依赖后即可用（10 §6.3） |
 | 测试 | JUnit 5 + Mockito | 5.10+ / 5.x | 不引 Testcontainers（DB 用本地 docker） |
 
 ### 1.1 后端明确禁用
@@ -50,8 +52,8 @@
 | 路由 | Vue Router | **4.3.x** | 动态路由（菜单驱动） |
 | HTTP | Axios | **1.7.x** | 封装于 `src/utils/request.ts` |
 | 图表 | ECharts | **5.5.x** | 按需引入，本期只在仪表盘占位 |
-| 包管理 | pnpm | **9.x** | 禁 npm / yarn 混用 |
-| CSS | SCSS | — | 全局变量在 `src/styles/variables.scss` |
+| 包管理 | npm | 随 Node 20 | 锁文件为 `package-lock.json`；**规划**：暂未迁移 pnpm，勿混用 yarn |
+| CSS | SCSS | — | 全局样式/主题变量在 `src/styles/index.scss`、`src/styles/themes.scss` |
 | 工具 | dayjs | **1.11.x** | 替代 moment |
 | 工具 | nprogress | latest | 路由切换进度条 |
 | Node.js | Node | **20 LTS** | — |
@@ -69,10 +71,10 @@
 
 ```xml
 <properties>
-    <java.version>17</java.version>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <spring-boot.version>3.2.12</spring-boot.version>
     <mybatis-plus.version>3.5.7</mybatis-plus.version>
     <sa-token.version>1.39.0</sa-token.version>
@@ -81,10 +83,14 @@
     <springdoc.version>2.5.0</springdoc.version>
     <knife4j.version>4.5.0</knife4j.version>
     <lombok.version>1.18.34</lombok.version>
-    <mysql.version>8.3.0</mysql.version>
     <flyway.version>9.22.3</flyway.version>
+    <easy-captcha.version>1.6.2</easy-captcha.version>
+    <easyexcel.version>3.3.4</easyexcel.version>
+    <poi.version>5.2.5</poi.version>
 </properties>
 ```
+
+> 说明：`maven.compiler.source/target` 即 JDK 17 的实际锁定方式（根 pom **没有** `java.version`）；MySQL 驱动版本由 `spring-boot-dependencies` 统一管理，**不**单独声明。
 
 ```jsonc
 // frontend/package.json 关键依赖（截选）
@@ -109,7 +115,9 @@
     "unplugin-auto-import": "^0.17.0",
     "sass": "^1.77.0",
     "eslint": "^8.57.0",
-    "prettier": "^3.3.0"
+    "prettier": "^3.3.0",
+    "@types/node": "^20.0.0",
+    "@types/nprogress": "^0.2.3"
   }
 }
 ```
@@ -136,7 +144,7 @@
 | D-mini-14 | 数据权限 | **5 级**：全部 / 本部门及下级 / 本部门 / 仅本人 / 自定义 | 默认值 1（全部） |
 | D-mini-15 | 操作日志 | `@OperLog(module="用户管理", name="新增用户")` 注解 + AOP 自动记录，经 SPI（`OperLogSink`）异步写入 `sys_oper_log` | 零侵入；注解参数必须**双参**，对应 `sys_oper_log.module / name`；密码等敏感字段自动脱敏 |
 | D-mini-16 | 登录安全 | BCrypt + 5 次失败锁定 10 分钟 + 图形验证码 | Sa-Token 限流 + 自定义 |
-| D-mini-17 | 静态资源 | 前端 `pnpm build` 产物由 Spring Boot 静态托管 `classpath:/static/` | 单 jar 部署 |
+| D-mini-17 | 静态资源 | 前端 `npm run build` 产物默认由 **Nginx** 托管（`deploy/nginx/nginx.conf`）；也可拷入 `qkit-admin` 的 `resources/static/` 单 jar 部署 | 与 `deploy/docker-compose.yml` 一致 |
 
 ## 5. 投喂前自检清单
 
@@ -144,4 +152,4 @@
 - [ ] 前端所有依赖版本与第 2 节一致
 - [ ] D-mini-1 ~ D-mini-17 全部已决
 - [ ] `mvn dependency:tree` 无冲突
-- [ ] `pnpm i` 无 peer dependency 警告
+- [ ] `npm install` 无 peer dependency 警告

@@ -12,6 +12,8 @@
 
 > 与兄弟项目 `glm-<大域>-<子域>` 命名不同，本项目**简化**：业务模块统一收在 `qkit-system` 一个 Maven 模块下，按子包分业务域。
 
+> **包结构说明**：现有系统模块使用**扁平包**（如 `domain.entity.User`、`service.UserService`、`controller.admin.UserController`）；**新业务模块推荐**加业务域子包（如下文示例 `domain/entity/trade/Order.java`）。两种都符合规范，**同一模块内保持一致**即可。
+
 ## 2. A 级 vs B 级判定
 
 | 维度 | B 级（默认） | A 级 |
@@ -32,7 +34,7 @@
 
 ### Step 1：写 DDL
 
-`qkit-admin/src/main/resources/db/migration/V<yyyy.MM.dd>__<b_trade_order>.sql`
+`qkit-admin/src/main/resources/db/migration/V<major>.<minor>.<patch>__<b_trade_order>.sql`
 
 ```sql
 CREATE TABLE `b_trade_order` (
@@ -84,7 +86,7 @@ CREATE TABLE `b_trade_order` (
 路径：`qkit-system/src/main/java/com/qkit/system/convert/trade/OrderConvert.java`
 
 - `@Mapper(componentModel = "spring")`
-- 方法：`toVO / toVOList / toEntity / toDetailVO`
+- 方法：`toVO / toVOList / toEntity / toUpdateEntity`（**无** `toDetailVO`；详情直接返回 VO）
 
 ### Step 6：写 Mapper
 
@@ -115,10 +117,8 @@ public interface OrderMapper extends BaseMapper<Order> {
 
 ### Step 9：写前端
 
-- `frontend/src/types/trade/order.ts` — TS 类型
-- `frontend/src/api/trade/order.ts` — HTTP 封装
-- `frontend/src/views/trade/order/index.vue` — 列表页
-- `frontend/src/views/trade/order/components/OrderFormDialog.vue` — 表单对话框
+- `frontend/src/api/trade/order.ts` — HTTP 封装 **+ TS 类型**（类型就近定义，见 07 §3.5）
+- `frontend/src/views/trade/order/index.vue` — 列表页（表单弹窗**内联**在同一文件，参考现有 `views/system/user/index.vue`）
 
 ### Step 10：菜单注册
 
@@ -127,18 +127,18 @@ public interface OrderMapper extends BaseMapper<Order> {
 ```sql
 -- 一级菜单：业务管理
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, icon, sort, visible, status, create_time)
-VALUES (100, '业务管理', 'M', 0, '/biz', 'Layout', 'Box', 10, 0, 0, NOW());
+VALUES (100, '业务管理', 'M', 0, '/biz', 'Layout', 'Box', 10, 1, 1, NOW());
 
--- 二级菜单：订单管理（perm 用 biz:order:page 表示查看权限，与 05 §5.1 禁用动词一致）
+-- 二级菜单：订单管理（perm 用 biz:order:page 表示查看权限）
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_time)
-VALUES (101, '订单管理', 'C', 100, '/biz/order', 'biz/order/index', 'biz:order:page', 'List', 1, 0, 0, NOW());
+VALUES (101, '订单管理', 'C', 100, '/biz/order', 'biz/order/index', 'biz:order:page', 'List', 1, 1, 1, NOW());
 
--- 按钮权限
-INSERT INTO sys_menu (id, name, type, parent_id, perm, sort, status, create_time) VALUES
-  (102, '订单查询', 'F', 101, 'biz:order:page', 1, 0, NOW()),
-  (103, '新增订单', 'F', 101, 'biz:order:create', 2, 0, NOW()),
-  (104, '更新订单', 'F', 101, 'biz:order:update', 3, 0, NOW()),
-  (105, '删除订单', 'F', 101, 'biz:order:delete', 4, 0, NOW());
+-- 按钮权限（visible=1 显示、status=1 启用）
+INSERT INTO sys_menu (id, name, type, parent_id, perm, sort, visible, status, create_time) VALUES
+  (102, '订单查询', 'F', 101, 'biz:order:page', 1, 1, 1, NOW()),
+  (103, '新增订单', 'F', 101, 'biz:order:create', 2, 1, 1, NOW()),
+  (104, '更新订单', 'F', 101, 'biz:order:update', 3, 1, 1, NOW()),
+  (105, '删除订单', 'F', 101, 'biz:order:delete', 4, 1, 1, NOW());
 ```
 
 ## 4. 跨模块调用规则
@@ -168,30 +168,30 @@ private final UserServiceImpl userServiceImpl;
 
 ```sql
 INSERT INTO sys_dict (id, name, type, status, create_time)
-VALUES (50, '业务状态', 'biz_order_status', 0, NOW());
+VALUES (50, '业务状态', 'biz_order_status', 1, NOW());
 
 INSERT INTO sys_dict_item (dict_type, label, value, sort, status, create_time) VALUES
-  ('biz_order_status', '待支付', '0', 1, 0, NOW()),
-  ('biz_order_status', '已支付', '1', 2, 0, NOW()),
-  ('biz_order_status', '已发货', '2', 3, 0, NOW()),
-  ('biz_order_status', '已收货', '3', 4, 0, NOW());
+  ('biz_order_status', '待支付', '0', 1, 1, NOW()),
+  ('biz_order_status', '已支付', '1', 2, 1, NOW()),
+  ('biz_order_status', '已发货', '2', 3, 1, NOW()),
+  ('biz_order_status', '已收货', '3', 4, 1, NOW());
 ```
 
 ### 5.2 前端
 
-字典存储在 Pinia `useDictStore`（启动时从后端拉取缓存到 Redis）：
+字典经 Pinia `useDictStore().loadDict(type)` 按需加载（后端启动时已把字典预热进 Redis，见 §6）：
 
 ```vue
 <DictSelect v-model="form.status" dict-type="biz_order_status" />
-<DictTag dict-type="biz_order_status" :value="row.status" />
+<DictTag dict-type="biz_order_status">{{ row.status }}</DictTag>
 ```
 
 ## 6. 字典存储策略
 
-- 启动时 `CommandLineRunner` 把所有启用字典从 MySQL 拉入 Redis
-- Redis key：`sys_dict:{type}` → JSON 列表
-- TTL 永不过期；写操作（增删改字典项）发事件清缓存
-- 前端启动时一次性拉所有字典到 store，**不**每次请求后端
+- 后端启动时 `DictServiceImpl`（实现 `CommandLineRunner`）把所有启用字典从 MySQL 预热进 Redis
+- Redis key：`sys_dict:{type}` → JSON 列表；**TTL 7 天**（`CacheService.set(..., Duration.ofDays(7))`）
+- 写操作（增删改字典项）后刷新/失效对应缓存
+- 前端按需懒加载：`useDictStore().loadDict(type)` 首次用到某 type 才请求后端，并缓存在内存
 
 ## 7. 简化模式（无业务规则的纯字典表）
 
@@ -212,7 +212,7 @@ public R<List<Config>> list() {
 
 - [ ] `mvn -B compile` 通过
 - [ ] 启动后端，登录 Knife4j 看到新接口
-- [ ] 前端 `pnpm dev` 启动，菜单可见
+- [ ] 前端 `npm run dev` 启动，菜单可见
 - [ ] 列表能展示、新增/编辑/删除/分页/搜索 全可用
 - [ ] 操作日志能看到新增/编辑/删除记录
 - [ ] 不存在的按钮（如不勾权限）不显示
@@ -224,7 +224,7 @@ public R<List<Config>> list() {
 
 - [ ] **先**在 06 文档第 10.1 节字典表追加新模块的权限码
 - [ ] 后端 Controller 方法全部加 `@SaCheckPermission("<module>:<resource>:<action>")`
-- [ ] 前端按钮全部加 `v-permission="['<module>:<resource>:<action>']"`
+- [ ] 前端按钮全部加 `v-permission="'<module>:<resource>:<action>'"`
 - [ ] **逐字比对**前后端字符串（大小写、冒号、拼写）
 - [ ] 在 `sys_menu` 表插入对应按钮（`type=F`，`perm=权限码`）
 - [ ] 角色分配后 → 重登录 → 按钮按权限显隐正确

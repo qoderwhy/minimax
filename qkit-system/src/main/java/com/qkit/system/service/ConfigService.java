@@ -1,21 +1,21 @@
 package com.qkit.system.service;
 
 import com.qkit.common.api.R;
-import com.qkit.system.domain.dto.SysConfigQueryDTO;
-import com.qkit.system.domain.dto.SysConfigSaveDTO;
-import com.qkit.system.domain.vo.SysConfigVO;
+import com.qkit.system.domain.dto.ConfigQueryDTO;
+import com.qkit.system.domain.dto.ConfigSaveDTO;
+import com.qkit.system.domain.vo.ConfigVO;
 
 import java.util.List;
 
-public interface SysConfigService {
+public interface ConfigService {
 
-    R<List<SysConfigVO>> page(SysConfigQueryDTO query);
+    R<List<ConfigVO>> page(ConfigQueryDTO query);
 
-    R<List<SysConfigVO>> list();
+    R<List<ConfigVO>> list();
 
-    R<Long> create(SysConfigSaveDTO dto);
+    R<Long> create(ConfigSaveDTO dto);
 
-    R<Boolean> update(SysConfigSaveDTO dto);
+    R<Boolean> update(ConfigSaveDTO dto);
 
     R<Boolean> delete(List<Long> ids);
 

@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 
-export interface SysConfig {
+export interface ConfigItem {
   id: number
   configName: string
   configKey: string
@@ -11,7 +11,7 @@ export interface SysConfig {
   updateTime?: string
 }
 
-export interface SysConfigSave {
+export interface ConfigSave {
   id?: number
   configName: string
   configKey: string
@@ -26,14 +26,14 @@ export function pageConfig(params: {
   configKey?: string
   configName?: string
 }) {
-  return request.page<SysConfig>({ url: '/admin-api/system/config/page', params })
+  return request.page<ConfigItem>({ url: '/admin-api/system/config/page', params })
 }
 
 export function listConfig() {
-  return request.get<SysConfig[]>({ url: '/admin-api/system/config/list' })
+  return request.get<ConfigItem[]>({ url: '/admin-api/system/config/list' })
 }
 
-export function saveConfig(data: SysConfigSave) {
+export function saveConfig(data: ConfigSave) {
   return data.id
     ? request.put<void>({ url: '/admin-api/system/config/update', data })
     : request.post<void>({ url: '/admin-api/system/config/create', data })

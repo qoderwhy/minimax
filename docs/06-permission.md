@@ -29,7 +29,7 @@
 
 - `module`：与菜单一级目录一致（小写），如 `system`
 - `resource`：资源名（小写），如 `user`
-- `action`：动词（小写），与 05 第 5 节 Controller 标准动词**一一对应**（11 个）：`page` / `list` / `detail` / `create` / `update` / `delete` / `export` / `simple-list` / `assign-role` / `reset-password` / `assign-menu`
+- `action`：动词（小写），与 05 第 5 节 Controller 标准动词对应：`page` / `list` / `detail` / `create` / `update` / `delete` / `export` / `simple-list` / `assign-role` / `reset-password` / `assign-menu` / `assign-dept` / `clean` 等（**以 §10.1 字典表为准**）
 
 示例：
 - `system:user:page`（用户分页列表）
@@ -67,12 +67,20 @@ sa-token:
 @RequiredArgsConstructor
 public class StpInterfaceImpl implements StpInterface {
 
-    private final PermissionService permissionService;
+    private static final String ADMIN_ROLE = "admin";
+    private static final String ALL_PERMISSION = "*:*:*";
 
-    /** 权限列表 */
+    private final PermissionService permissionService;
+    private final CacheService cacheService;
+
+    /** 权限列表：admin 角色直接返回通配；否则读缓存（30 分钟），未命中再查库并回填 */
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
-        return permissionService.getUserPermissions(Long.parseLong(loginId.toString()));
+        Long userId = Long.parseLong(loginId.toString());
+        if (permissionService.getUserRoleCodes(userId).contains(ADMIN_ROLE)) {
+            return List.of(ALL_PERMISSION);
+        }
+        // 读 CacheConstants.PERM_KEY_PREFIX + userId；未命中查库后回填（TTL 30 分钟）
     }
 
     /** 角色列表 */
@@ -80,13 +88,10 @@ public class StpInterfaceImpl implements StpInterface {
     public List<String> getRoleList(Object loginId, String loginType) {
         return permissionService.getUserRoleCodes(Long.parseLong(loginId.toString()));
     }
-
-    /** 数据权限范围（5 级） */
-    public DataScope getDataScope(Long userId) {
-        return permissionService.getDataScope(userId);
-    }
 }
 ```
+
+> **数据范围不在此类**：5 级数据范围由 `PermissionService.getDataScope(userId)` 返回 `DataScopeEnum`，供 `DataScopeAspect` 使用（见 §4.1）。`StpInterfaceImpl` 只负责权限/角色；另对 `admin` 角色授予通配权限 `*:*:*`（前端 `usePermissionStore` 同样支持该通配）。
 
 ### 3.3 注解用法
 
@@ -131,12 +136,12 @@ package com.qkit.framework.security.annotation;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DataScope {
-    /** 表别名，SQL 中 AS 的别名 */
-    String alias() default "";
-    /** 部门字段名，默认 dept_id */
-    String deptColumn() default "dept_id";
-    /** 用户字段名，默认 create_by */
-    String userColumn() default "create_by";
+    /** 参与过滤的表名（必须与 SQL 中表名一致，如 sys_user） */
+    String table() default "";
+    /** 部门维度列名（如 dept_id / id） */
+    String deptColumn() default "";
+    /** 用户维度列名（如 create_by / user_id） */
+    String userColumn() default "";
 }
 ```
 
@@ -148,20 +153,27 @@ public @interface DataScope {
 @RequiredArgsConstructor
 public class DataScopeAspect {
 
+    private final DataScopeHelper dataScopeHelper;
+    private final PermissionService permissionService;
+
     @Around("@annotation(dataScope)")
     public Object around(ProceedingJoinPoint pjp, DataScope dataScope) throws Throwable {
-        // 1. 取当前用户
-        Long userId = StpUtil.getLoginAsLongId();
-        DataScopeEnum scope = getDataScope(userId);
-        // 2. 注入 MyBatis-Plus DataScopeInterceptor
-        //    简化版：直接在执行前用 ThreadLocal 传上下文
-        DataScopeContext.set(new DataScopeContext.Scope(
-            scope, dataScope.alias(), dataScope.deptColumn(), dataScope.userColumn()
-        ));
         try {
+            if (StpUtil.isLogin()) {
+                Long userId = StpUtil.getLoginIdAsLong();
+                DataScopeContext ctx = new DataScopeContext();
+                ctx.setUserId(userId);
+                ctx.setTable(dataScope.table());
+                ctx.setDeptColumn(dataScope.deptColumn());
+                ctx.setUserColumn(dataScope.userColumn());
+                ctx.setScope(permissionService.getDataScope(userId));        // DataScopeEnum
+                ctx.setVisibleDeptIds(dataScopeHelper.visibleDeptIds(userId));
+                ctx.setVisibleUserIds(dataScopeHelper.visibleUserIds(userId));
+                DataScopeContextHolder.set(ctx);
+            }
             return pjp.proceed();
         } finally {
-            DataScopeContext.clear();
+            DataScopeContextHolder.clear();
         }
     }
 }
@@ -170,7 +182,7 @@ public class DataScopeAspect {
 #### 4.1.3 使用
 
 ```java
-@DataScope(alias = "u", deptColumn = "dept_id", userColumn = "create_by")
+@DataScope(table = "sys_user", deptColumn = "dept_id", userColumn = "create_by")
 public Page<UserVO> page(UserQueryDTO query) {
     return userMapper.selectUserPage(query, page);
 }
@@ -178,36 +190,36 @@ public Page<UserVO> page(UserQueryDTO query) {
 
 #### 4.1.4 SQL 拼接示例（5 级对应改写）
 
-> `DataScopeContext` 拿到 scope 后，在 MyBatis-Plus `DataScopeInterceptor`（或自定义 SQL 改写器）里按以下规则改写：
+> `DataScopeContextHolder` 中的上下文被 `DataScopeHandler`（`implements MultiDataPermissionHandler`）读取，由 MyBatis-Plus `DataPermissionInterceptor` 在 SQL 执行前改写：
 
 | scope | 改写片段（追加到 WHERE） | 假设上下文 |
 |---|---|---|
 | 1 全部 | 不过滤 | 当前用户 dataScope=1 |
-| 2 本部门及下级 | `AND {alias}.dept_id IN (子部门列表)` | 当前用户 dept_id=10，递归子部门=[10,11,12] |
-| 3 本部门 | `AND {alias}.dept_id = 10` | 当前用户 dept_id=10 |
-| 4 仅本人 | `AND {alias}.create_by = 100` | 当前用户 id=100 |
-| 5 自定义 | `AND {alias}.dept_id IN (sys_role_dept 中 role_id=当前用户角色绑定的部门)` | 查 `sys_role_dept` 取部门集合 |
+| 2 本部门及下级 | `AND {table}.dept_id IN (子部门列表)` | 当前用户 dept_id=10，递归子部门=[10,11,12] |
+| 3 本部门 | `AND {table}.dept_id = 10` | 当前用户 dept_id=10 |
+| 4 仅本人 | `AND {table}.create_by = 100` | 当前用户 id=100 |
+| 5 自定义 | `AND {table}.dept_id IN (sys_role_dept 中 role_id=当前用户角色绑定的部门)` | 查 `sys_role_dept` 取部门集合 |
 
-**别名规则**：`alias` 为注解传入（例 `u`），最终 SQL 形如：
+**表名规则**：`table` 为注解传入（例 `sys_user`），最终 SQL 形如：
 
 ```sql
 -- 原始
-SELECT u.* FROM sys_user u WHERE u.del_flag = 0
+SELECT * FROM sys_user WHERE del_flag = 0
 -- scope=2 改写后
-SELECT u.* FROM sys_user u WHERE u.del_flag = 0 AND u.dept_id IN (10, 11, 12)
+SELECT * FROM sys_user WHERE del_flag = 0 AND sys_user.dept_id IN (10, 11, 12)
 -- scope=4 改写后
-SELECT u.* FROM sys_user u WHERE u.del_flag = 0 AND u.create_by = 100
+SELECT * FROM sys_user WHERE del_flag = 0 AND sys_user.create_by = 100
 ```
 
 **子部门递归**（scope=2）实现要点：
 
 ```java
-// qkit-system/.../utils/DeptHelper.java
-public static List<Long> getChildDeptIds(Long rootDeptId) {
-    // 1. 一次性查出所有部门（缓存 5 分钟）
-    // 2. parent_id 自下而上反查 rootDeptId
+// qkit-system/.../service/impl/DataScopeHelper.java
+public List<Long> visibleDeptIds(Long userId) {
+    // 1. 依据用户所在部门 + 角色 data_scope 计算可见部门集合
+    // 2. 一次性查出部门后在内存中收敛子树（parent_id 关系）
     // 3. 返回 root + 所有子部门 id 集合
-    // 注意：禁止在 SQL 改写器里再发 SQL（递归调用会触发拦截器）
+    // 注意：禁止在 SQL 改写器里再发 SQL（会再次触发 DataPermissionInterceptor）
 }
 ```
 
@@ -215,16 +227,17 @@ public static List<Long> getChildDeptIds(Long rootDeptId) {
 
 - 在 `Mapper.xml` 里硬编码 `AND create_by = #{currentUserId}` → 绕过 scope 配置，无法切换
 - 子部门用 SQL 递归查询（`WITH RECURSIVE`）→ 改写器里发 SQL 会触发自身拦截器死循环
-- 跨表 JOIN 时多个 `@DataScope` 注解未指定不同 alias → WHERE 条件冲突
+- 跨表 JOIN 时多个 `@DataScope` 注解未指定不同 `table` → WHERE 条件冲突
 
 ## 5. 动态路由与按钮权限
 
 ### 5.1 后端：菜单路由接口
 
 ```java
+// GET /admin-api/system/menu/route
 @GetMapping("/route")
-public R<List<RouteVO>> getRoute() {
-    return R.ok(menuService.getCurrentUserRoute());
+public R<List<RouteVO>> route() {
+    return R.ok(menuService.currentUserRoute());
 }
 ```
 
@@ -249,7 +262,7 @@ public R<List<RouteVO>> getRoute() {
 
 ```ts
 // stores/permission.ts
-const dynamicRoutes = transformMenuToRoutes(menus)
+const dynamicRoutes = transformRoutes(menus)   // router/dynamic.ts
 router.addRoute(dynamicRoutes)
 ```
 
@@ -280,7 +293,7 @@ function applyPermission(el: HTMLElement, binding: DirectiveBinding) {
 
 使用：
 ```html
-<el-button v-permission="['system:user:create']" @click="onCreate">新增</el-button>
+<el-button v-permission="'system:user:create'" @click="onCreate">新增</el-button>
 ```
 
 ## 6. 密码与登录安全
@@ -293,9 +306,9 @@ function applyPermission(el: HTMLElement, binding: DirectiveBinding) {
 
 ### 6.2 登录失败锁定
 
-- 5 次失败 → 锁定 10 分钟
-- 计数存 Redis：key = `login:fail:{username}`，TTL 10 分钟
-- 第 6 次请求即使密码正确也拒绝
+- 用户名维度：5 次失败 → 锁定 10 分钟；计数 key = `login:fail:{username}`，TTL 10 分钟
+- IP 维度：同一来源 IP 失败 20 次 → 返回 `TOO_MANY_REQUESTS`；计数 key = `login:fail:ip:{ip}`
+- 超过阈值后即使密码正确也拒绝
 
 ```java
 public void validateLoginFailCount(String username) {
@@ -325,7 +338,7 @@ public void onLoginSuccess(String username) {
 
 ### 6.4 Token 安全
 
-- Sa-Token JWT 模式 + 24h 过期
+- Token 模式：dev `token-style: uuid`，prod 配置 `jwt-secret-key`（JWT）；24h 过期
 - 用户主动登出后 token 失效（黑名单）
 - 改密码后强制下线所有设备（`StpUtil.logout(userId)`）
 
@@ -336,7 +349,7 @@ public void onLoginSuccess(String username) {
 | S1 | **禁止**明文存密码 |
 | S2 | **禁止**前端写死后端地址 / API Key / 密钥 |
 | S3 | **禁止**日志输出密码、token、身份证、银行卡 |
-| S4 | **禁止**前端 `localStorage` 存敏感数据（token 可用 sessionStorage 替代） |
+| S4 | **禁止**前端 `localStorage` 存敏感数据（密码/密钥等）；当前 token 以 `qkit_token` 存于 `localStorage`，如需更高安全性可改 `sessionStorage` |
 | S5 | **禁止**接口返回 Entity/DTO 给前端（必须 VO 脱敏） |
 | S6 | **禁止**前端按钮只靠隐藏，必须配后端 `@SaCheckPermission` |
 | S7 | **禁止** SQL 拼接，所有查询走 MyBatis-Plus |
@@ -362,7 +375,7 @@ public void onLoginSuccess(String username) {
 
 ## 10. 权限码字典（前后端单一事实源）
 
-> **硬约束**：前端 `v-permission="['system:user:create']"` 的字符串，**必须**与后端 `@SaCheckPermission("system:user:create")` 的字符串**完全一致**（含大小写、冒号、拼写）。
+> **硬约束**：前端 `v-permission="'system:user:create'"`（指令同时兼容数组 `['a','b']`）的字符串，**必须**与后端 `@SaCheckPermission("system:user:create")` 的字符串**完全一致**（含大小写、冒号、拼写）。
 > 智能体生成新模块时，**先**在权限码字典表登记 → **再**写后端注解 → **再**写前端指令。**禁止**两端各自拼写。
 
 ### 10.1 字典表（MVP 完整清单）
@@ -387,6 +400,7 @@ public void onLoginSuccess(String username) {
 | `system:role:update` | 角色 | 更新 | `RoleController.update` | 「编辑角色」按钮 |
 | `system:role:delete` | 角色 | 删除 | `RoleController.delete` | 「删除角色」按钮 |
 | `system:role:assign-menu` | 角色 | 分配菜单 | `RoleController.assignMenu` | 「分配菜单」按钮 |
+| `system:role:assign-dept` | 角色 | 分配部门 | `RoleController.assignDept` | 「分配部门/数据权限」按钮 |
 | `system:menu:tree` | 菜单 | 树形查询 | `MenuController.tree` | 菜单树 |
 | `system:menu:create` | 菜单 | 新增 | `MenuController.create` | 「新增菜单」按钮 |
 | `system:menu:update` | 菜单 | 更新 | `MenuController.update` | 「编辑菜单」按钮 |
@@ -407,18 +421,22 @@ public void onLoginSuccess(String username) {
 | `system:dict:update` | 字典 | 更新 | `DictController.update` | 「编辑字典」按钮 |
 | `system:dict:delete` | 字典 | 删除 | `DictController.delete` | 「删除字典」按钮 |
 | `system:oper-log:page` | 操作日志 | 查询 | `OperLogController.page` | 操作日志列表 |
+| `system:oper-log:delete` | 操作日志 | 删除 | `OperLogController.delete` | 「删除日志」按钮 |
+| `system:oper-log:clean` | 操作日志 | 清空 | `OperLogController.clean` | 「清空日志」按钮 |
 | `system:login-log:page` | 登录日志 | 查询 | `LoginLogController.page` | 登录日志列表 |
-| `system:config:page` | 参数配置 | 分页查询 | `SysConfigController.page` | 参数配置列表 |
-| `system:config:list` | 参数配置 | 简单列表 | `SysConfigController.list` | 参数配置下拉 |
-| `system:config:create` | 参数配置 | 新增 | `SysConfigController.create` | 「新增参数」按钮 |
-| `system:config:update` | 参数配置 | 更新 | `SysConfigController.update` | 「编辑参数」按钮 |
-| `system:config:delete` | 参数配置 | 删除 | `SysConfigController.delete` | 「删除参数」按钮 |
+| `system:login-log:delete` | 登录日志 | 删除 | `LoginLogController.delete` | 「删除日志」按钮 |
+| `system:login-log:clean` | 登录日志 | 清空 | `LoginLogController.clean` | 「清空日志」按钮 |
+| `system:config:page` | 参数配置 | 分页查询 | `ConfigController.page` | 参数配置列表 |
+| `system:config:list` | 参数配置 | 简单列表 | `ConfigController.list` | 参数配置下拉 |
+| `system:config:create` | 参数配置 | 新增 | `ConfigController.create` | 「新增参数」按钮 |
+| `system:config:update` | 参数配置 | 更新 | `ConfigController.update` | 「编辑参数」按钮 |
+| `system:config:delete` | 参数配置 | 删除 | `ConfigController.delete` | 「删除参数」按钮 |
 
 ### 10.2 新增权限码流程
 
 1. 在本表追加一行（模块名:资源名:动作）
 2. 后端 Controller 方法加 `@SaCheckPermission("新:增:码")`
-3. 前端按钮加 `v-permission="['新:增:码']"`
+3. 前端按钮加 `v-permission="'新:增:码'"`
 4. 同步在 `sys_menu` 表插入对应按钮菜单（`type=F`，`perm=新:增:码`）
 
 > 任何**不一致**（后端写了注解但前端无 `v-permission`、或前端有按钮但后端无注解）都属于权限漏洞，**必须**在 Code Review 阶段拦截。
@@ -426,7 +444,7 @@ public void onLoginSuccess(String username) {
 ## 11. 权限缓存策略
 
 - 用户登录后，Sa-Token Session 存：`loginId` + `userId`
-- 权限/角色列表由 `StpInterfaceImpl.getPermissionList()` **懒加载**（每次请求调用）
+- 权限/角色列表由 `StpInterfaceImpl.getPermissionList()` 提供；结果缓存于 Redis（见下），未命中才查库
 - **Redis 缓存**：`perm:{userId}` → `List<String>` 权限码集合，TTL 30 分钟
 - 变更触发清缓存：用户角色变更 / 角色权限变更 / 菜单变更 → `redis.delete("perm:" + userId)`
 - 前端权限（按钮可见性）从 `usePermissionStore.buttons` 拉（启动时调 `/admin-api/auth/perms`）

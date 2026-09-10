@@ -71,15 +71,15 @@
 
 | 位置 | 形态 | 见 |
 |---|---|---|
-| 后端 Controller 方法 | `@SaCheckPermission("xxx:xxx:xxx")` | 08 §1.6 |
-| 前端按钮元素 | `v-permission="['xxx:xxx:xxx']"`（06 §5.3 支持数组多码：`['a','b']` 任一命中即显示） | 08 §1.11 |
+| 后端 Controller 方法 | `@SaCheckPermission("xxx:xxx:xxx")` | 08 §1.11 |
+| 前端按钮元素 | `v-permission="'xxx:xxx:xxx'"`（06 §5.3 指令同时兼容数组多码：`['a','b']` 任一命中即显示） | 08 §1.14 |
 | 数据库 | `sys_menu.type='F'` 且 `sys_menu.perm='xxx:xxx:xxx'` | 06 §1、04 §3 |
 
 **5 步走**（跳步 = 漏洞）：
 
 1. 06 §10 权限码字典登记（或确认已在字典内）
 2. 后端 Controller 方法加 `@SaCheckPermission("<code>")`
-3. 前端按钮元素加 `v-permission="['<code>']"`
+3. 前端按钮元素加 `v-permission="'<code>'"`
 4. `sys_menu` 插入 `type=F` 记录，`perm='<code>'`
 5. 「角色管理 → 分配菜单」勾选该按钮 → 重登录 → 验证显隐 + 接口调用
 
@@ -88,7 +88,7 @@
 - 后端有注解但前端无 `v-permission` → 权限绕过
 - 菜单 `type=F` 但 `perm` 为空 → 典型漏洞
 
-详见 [06 §10](./06-permission.md) / [08 §1.6 §1.11](./08-golden-examples.md) / [09 §Step 10](./09-module-onboarding.md)。
+详见 [06 §10](./06-permission.md) / [08 §1.11 §1.14](./08-golden-examples.md) / [09 §Step 10](./09-module-onboarding.md)。
 
 ## 投喂顺序建议
 

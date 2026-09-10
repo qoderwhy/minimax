@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { pageConfig, saveConfig, deleteConfig, type SysConfig, type SysConfigSave } from '@/api/system/config'
+import { pageConfig, saveConfig, deleteConfig, type ConfigItem, type ConfigSave } from '@/api/system/config'
 import { useCrud } from '@/composables/useCrud'
 
 type ConfigQuery = {
@@ -14,7 +14,7 @@ const {
   query, list, total, loading,
   dialogVisible, dialogMode, form, formRef,
   fetch: fetchList, onSearch, onAdd, onEdit, onSave, onDelete
-} = useCrud<SysConfig, ConfigQuery, SysConfigSave>({
+} = useCrud<ConfigItem, ConfigQuery, ConfigSave>({
   page: (q) => pageConfig(q),
   save: (data) => saveConfig(data),
   remove: (id) => deleteConfig(Number(id)),
@@ -59,8 +59,8 @@ const {
         <el-table-column prop="remark" label="备注" min-width="150" show-overflow-tooltip />
         <el-table-column label="操作" width="130" fixed="right">
           <template #default="{ row }">
-            <el-button v-permission="'system:config:update'" type="primary" link size="small" @click="onEdit(row as SysConfig)">编辑</el-button>
-            <el-button v-permission="'system:config:delete'" type="danger" link size="small" @click="onDelete(row as SysConfig)">删除</el-button>
+            <el-button v-permission="'system:config:update'" type="primary" link size="small" @click="onEdit(row as ConfigItem)">编辑</el-button>
+            <el-button v-permission="'system:config:delete'" type="danger" link size="small" @click="onDelete(row as ConfigItem)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
