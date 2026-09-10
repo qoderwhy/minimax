@@ -5,6 +5,7 @@ import { login as apiLogin, logout as apiLogout, getMe } from '@/api/auth'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import { usePermissionStore } from '@/stores/permission'
 import { useAppStore } from '@/stores/app'
+import { useDictStore } from '@/stores/dict'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref<string>(getToken())
@@ -58,6 +59,8 @@ export const useUserStore = defineStore('user', () => {
     })
     permStore.reset()
     useAppStore().resetTags()
+    // 清空字典缓存，避免切换账号后残留上一账号的字典数据
+    useDictStore().clearDict()
   }
 
   return { token, userInfo, permissions, isLoggedIn, login, logout, fetchUserInfo, setLoginVO }

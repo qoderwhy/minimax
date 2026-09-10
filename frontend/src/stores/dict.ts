@@ -13,6 +13,11 @@ export const useDictStore = defineStore('dict', () => {
     return items
   }
 
+  /** 清空全部字典缓存（登出时调用） */
+  function clearDict() {
+    dictMap.value = {}
+  }
+
   function getDict(type: string): DictItem[] {
     return dictMap.value[type] || []
   }
@@ -22,5 +27,5 @@ export const useDictStore = defineStore('dict', () => {
     return item ? item.label : String(value)
   }
 
-  return { dictMap, loadDict, getDict, getLabel }
+  return { dictMap, loadDict, clearDict, getDict, getLabel }
 })

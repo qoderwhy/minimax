@@ -110,7 +110,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public R<LoginUserVO> me() {
         Long userId = StpUtil.getLoginIdAsLong();
-        User user = userService.getByUsername(currentUsername());
+        User user = userService.getById(userId);
         if (user == null) throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         LoginUserVO vo = userConvert.toLoginUserVO(user);
         return R.ok(new LoginUserVO(
@@ -120,8 +120,4 @@ public class AuthServiceImpl implements AuthService {
                 permissionService.getUserPermissions(userId)));
     }
 
-    private String currentUsername() {
-        // 通过缓存或查询
-        return StpUtil.getSessionByLoginId(StpUtil.getLoginIdAsLong()).getString(SecurityConstants.SESSION_USERNAME);
-    }
 }

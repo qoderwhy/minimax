@@ -53,23 +53,39 @@ public class MenuServiceImpl implements MenuService {
         Long userId = StpUtil.getLoginIdAsLong();
         List<String> perms = permissionService.getUserPermissions(userId);
         List<String> roleCodes = permissionService.getUserRoleCodes(userId);
-        // 简化：根据权限码查菜单
-        List<Menu> menus;
-        if (perms.contains("*:*:*") || roleCodes.contains("admin") || isAdmin(perms)) {
-            menus = menuMapper.selectList(new LambdaQueryWrapper<Menu>()
-                    .eq(Menu::getStatus, 1)
-                    .in(Menu::getType, "M", "C")
-                    .orderByAsc(Menu::getSort));
-        } else {
-            menus = menuMapper.selectList(new LambdaQueryWrapper<Menu>()
-                    .eq(Menu::getStatus, 1)
-                    .in(Menu::getType, "M", "C")
-                    .in(Menu::getPerm, perms)
-                    .orderByAsc(Menu::getSort));
-        }
+        // 一次性加载所有启用的目录(M)/菜单(C)，普通用户再按「有权限的菜单 + 其祖先目录」过滤
+        List<Menu> all = menuMapper.selectList(new LambdaQueryWrapper<Menu>()
+                .eq(Menu::getStatus, 1)
+                .in(Menu::getType, "M", "C")
+                .orderByAsc(Menu::getSort));
+        List<Menu> menus = (perms.contains("*:*:*") || roleCodes.contains("admin"))
+                ? all
+                : visibleMenus(all, new java.util.HashSet<>(perms));
         Map<Long, List<Menu>> byParent = menus.stream()
                 .collect(Collectors.groupingBy(m -> m.getParentId() == null ? 0L : m.getParentId()));
         return R.ok(buildRoute(0L, byParent));
+    }
+
+    /**
+     * 普通用户可见菜单：保留有权限的菜单(C)，并沿父链补齐所有祖先目录(M)，
+     * 避免目录无 perm 时整棵子树对普通用户不可见。
+     */
+    private List<Menu> visibleMenus(List<Menu> all, java.util.Set<String> perms) {
+        java.util.Map<Long, Menu> byId = all.stream()
+                .collect(Collectors.toMap(Menu::getId, m -> m, (a, b) -> a));
+        java.util.Set<Long> visibleIds = new java.util.HashSet<>();
+        for (Menu m : all) {
+            if (!MenuTypeEnum.MENU.getCode().equals(m.getType())) continue;
+            if (m.getPerm() == null || !perms.contains(m.getPerm())) continue;
+            // 当前菜单向上追溯到根，沿途节点全部标记可见
+            Long cur = m.getId();
+            while (cur != null && visibleIds.add(cur)) {
+                Menu node = byId.get(cur);
+                if (node == null) break;
+                cur = (node.getParentId() == null || node.getParentId() == 0L) ? null : node.getParentId();
+            }
+        }
+        return all.stream().filter(m -> visibleIds.contains(m.getId())).toList();
     }
 
     @Override
@@ -123,10 +139,6 @@ public class MenuServiceImpl implements MenuService {
             result.add(vo);
         }
         return result;
-    }
-
-    private boolean isAdmin(List<String> perms) {
-        return perms.contains("system") || perms.contains("admin");
     }
 
     private String capitalize(String s) {

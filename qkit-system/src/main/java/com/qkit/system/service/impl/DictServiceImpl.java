@@ -135,7 +135,7 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
 
     @Override
     public void loadAllToCache() {
-        List<Dict> dicts = dictMapper.selectList(new LambdaQueryWrapper<Dict>().eq(Dict::getStatus, 0));
+        List<Dict> dicts = dictMapper.selectList(new LambdaQueryWrapper<Dict>().eq(Dict::getStatus, 1));
         dicts.forEach(d -> loadToCache(d.getType()));
     }
 
@@ -162,7 +162,7 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
     private List<DictItemVO> loadToCache(String type) {
         List<DictItem> items = dictItemMapper.selectList(new LambdaQueryWrapper<DictItem>()
                 .eq(DictItem::getDictType, type)
-                .eq(DictItem::getStatus, 0)
+                .eq(DictItem::getStatus, 1)
                 .orderByAsc(DictItem::getSort));
         List<DictItemVO> voList = dictItemConvert.toVOList(items);
         cacheService.set(CacheConstants.DICT_KEY_PREFIX + type, voList, Duration.ofDays(7));

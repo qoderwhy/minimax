@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qkit.common.api.ErrorCode;
 import com.qkit.common.api.R;
 import com.qkit.common.exception.BusinessException;
+import com.qkit.common.transaction.TransactionUtils;
 import com.qkit.framework.security.annotation.DataScope;
 import com.qkit.system.convert.DeptConvert;
 import com.qkit.system.domain.dto.DeptSaveDTO;
@@ -79,6 +80,8 @@ public class DeptServiceImpl implements DeptService {
         dept.setEmail(dto.email());
         dept.setStatus(dto.status() == null ? 1 : dto.status());
         deptMapper.insert(dept);
+        // 事务提交后再失效缓存，避免提交前被并发回填脏数据
+        TransactionUtils.afterCommit(dataScopeHelper::invalidateDeptCache);
         return R.ok(dept.getId());
     }
 
@@ -95,6 +98,7 @@ public class DeptServiceImpl implements DeptService {
         dept.setEmail(dto.email());
         dept.setStatus(dto.status());
         deptMapper.updateById(dept);
+        TransactionUtils.afterCommit(dataScopeHelper::invalidateDeptCache);
         return R.ok(true);
     }
 
@@ -102,12 +106,13 @@ public class DeptServiceImpl implements DeptService {
     @Transactional(rollbackFor = Exception.class)
     public R<Boolean> delete(List<Long> ids) {
         if (CollUtil.isEmpty(ids)) throw new BusinessException(ErrorCode.BAD_REQUEST);
+        // 父子映射只构建一次，避免在循环内重复全表加载
+        List<Dept> all = deptMapper.selectList(null);
+        Map<Long, List<Long>> parentToChildren = all.stream().collect(Collectors.groupingBy(
+                Dept::getParentId,
+                Collectors.mapping(Dept::getId, Collectors.toList())));
         for (Long id : ids) {
             // 1. 检查子部门
-            List<Dept> all = deptMapper.selectList(null);
-            Map<Long, List<Long>> parentToChildren = all.stream().collect(Collectors.groupingBy(
-                    Dept::getParentId,
-                    Collectors.mapping(Dept::getId, Collectors.toList())));
             int childCount = countChildren(id, parentToChildren);
             if (childCount > 0) throw new BusinessException(ErrorCode.DEPT_HAS_CHILDREN);
             // 2. 检查部门下用户
@@ -115,6 +120,7 @@ public class DeptServiceImpl implements DeptService {
             if (userCount > 0) throw new BusinessException(ErrorCode.DEPT_HAS_USER);
         }
         deptMapper.deleteBatchIds(ids);
+        TransactionUtils.afterCommit(dataScopeHelper::invalidateDeptCache);
         return R.ok(true);
     }
 

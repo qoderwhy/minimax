@@ -41,6 +41,9 @@ public interface UserService {
     /** 根据用户名查询（登录用） */
     com.qkit.system.domain.entity.User getByUsername(String username);
 
+    /** 根据主键查询 */
+    com.qkit.system.domain.entity.User getById(Long id);
+
     /** 更新登录信息 */
     void updateLoginInfo(Long userId, String ip);
 }

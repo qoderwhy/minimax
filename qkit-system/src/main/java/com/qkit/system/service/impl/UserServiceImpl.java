@@ -20,11 +20,16 @@ import com.qkit.system.domain.dto.UserQueryDTO;
 import com.qkit.system.domain.entity.Dept;
 import com.qkit.system.domain.entity.Post;
 import com.qkit.system.domain.entity.User;
+import com.qkit.system.domain.entity.UserPost;
+import com.qkit.system.domain.entity.UserRole;
 import com.qkit.system.domain.vo.UserExportVO;
 import com.qkit.system.domain.vo.UserVO;
 import com.qkit.system.mapper.DeptMapper;
 import com.qkit.system.mapper.PostMapper;
 import com.qkit.system.mapper.UserMapper;
+import com.qkit.system.mapper.UserPostMapper;
+import com.qkit.system.mapper.UserRoleMapper;
+import com.qkit.system.service.PermissionService;
 import com.qkit.system.service.UserRoleService;
 import com.qkit.system.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -38,6 +43,9 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -48,7 +56,10 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final DeptMapper deptMapper;
     private final PostMapper postMapper;
+    private final UserRoleMapper userRoleMapper;
+    private final UserPostMapper userPostMapper;
     private final UserRoleService userRoleService;
+    private final PermissionService permissionService;
     private final UserConvert userConvert;
 
     @Override
@@ -65,7 +76,7 @@ public class UserServiceImpl implements UserService {
                 .eq(query.deptId() != null, User::getDeptId, query.deptId())
                 .orderByDesc(User::getId);
         Page<User> result = userMapper.selectPage(page, wrapper);
-        List<UserVO> voList = result.getRecords().stream().map(this::toVOWithExtra).toList();
+        List<UserVO> voList = enrichUsers(result.getRecords());
         return R.ok(voList, result.getTotal(), query.pageNum(), query.pageSize());
     }
 
@@ -80,9 +91,9 @@ public class UserServiceImpl implements UserService {
                 .eq(query.deptId() != null, User::getDeptId, query.deptId())
                 .orderByDesc(User::getId);
         List<User> users = userMapper.selectList(wrapper);
+        List<UserVO> voList = enrichUsers(users);
         List<UserExportVO> exportList = new ArrayList<>(users.size());
-        for (User user : users) {
-            UserVO vo = toVOWithExtra(user);
+        for (UserVO vo : voList) {
             exportList.add(UserExportVO.builder()
                     .username(vo.username())
                     .nickname(vo.nickname())
@@ -110,7 +121,7 @@ public class UserServiceImpl implements UserService {
         User user = userMapper.selectById(id);
         if (user == null) throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         List<Long> roleIds = userRoleService.getRoleIdsByUserId(id);
-        UserVO vo = toVOWithExtra(user);
+        UserVO vo = enrichUsers(List.of(user)).get(0);
         return R.ok(new UserVO(
                 vo.id(), vo.username(), vo.nickname(), vo.realName(),
                 vo.email(), vo.phone(), vo.avatar(), vo.sex(), vo.sexLabel(),
@@ -157,7 +168,17 @@ public class UserServiceImpl implements UserService {
     @Transactional(rollbackFor = Exception.class)
     public R<Boolean> delete(List<Long> ids) {
         if (CollUtil.isEmpty(ids)) throw new BusinessException(ErrorCode.BAD_REQUEST);
+        // 级联清理关联与在线会话，避免孤儿数据与残留权限
+        userRoleMapper.delete(new LambdaQueryWrapper<UserRole>().in(UserRole::getUserId, ids));
+        userPostMapper.delete(new LambdaQueryWrapper<UserPost>().in(UserPost::getUserId, ids));
         userMapper.deleteBatchIds(ids);
+        for (Long id : ids) {
+            try {
+                cn.dev33.satoken.stp.StpUtil.logout(id);
+            } catch (Exception ignored) {
+            }
+            permissionService.clearUserPermissionCache(id);
+        }
         return R.ok(true);
     }
 
@@ -180,6 +201,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(rollbackFor = Exception.class)
     public R<Boolean> assignRole(Long userId, List<Long> roleIds) {
         userRoleService.saveByUserId(userId, roleIds);
+        permissionService.clearUserPermissionCache(userId);
         return R.ok(true);
     }
 
@@ -228,6 +250,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User getById(Long id) {
+        return userMapper.selectById(id);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateLoginInfo(Long userId, String ip) {
         User u = new User();
@@ -237,18 +264,31 @@ public class UserServiceImpl implements UserService {
         userMapper.updateById(u);
     }
 
-    private UserVO toVOWithExtra(User user) {
+    /** 批量填充部门、岗位名称，避免逐行 selectById 产生 N+1 查询 */
+    private List<UserVO> enrichUsers(List<User> users) {
+        Set<Long> deptIds = users.stream()
+                .map(User::getDeptId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+        Set<Long> postIds = users.stream()
+                .map(User::getPostId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+        Map<Long, String> deptNameMap = deptIds.isEmpty() ? Map.of()
+                : deptMapper.selectBatchIds(deptIds).stream()
+                        .collect(Collectors.toMap(Dept::getId, Dept::getName, (a, b) -> a));
+        Map<Long, String> postNameMap = postIds.isEmpty() ? Map.of()
+                : postMapper.selectBatchIds(postIds).stream()
+                        .collect(Collectors.toMap(Post::getId, Post::getName, (a, b) -> a));
+        return users.stream().map(u -> toVOWithExtra(u, deptNameMap, postNameMap)).toList();
+    }
+
+    private UserVO toVOWithExtra(User user, Map<Long, String> deptNameMap, Map<Long, String> postNameMap) {
         UserVO vo = userConvert.toVO(user);
-        String deptName = null;
-        String postName = null;
-        if (user.getDeptId() != null && user.getDeptId() > 0) {
-            Dept dept = deptMapper.selectById(user.getDeptId());
-            if (dept != null) deptName = dept.getName();
-        }
-        if (user.getPostId() != null && user.getPostId() > 0) {
-            Post post = postMapper.selectById(user.getPostId());
-            if (post != null) postName = post.getName();
-        }
+        String deptName = (user.getDeptId() != null && user.getDeptId() > 0)
+                ? deptNameMap.get(user.getDeptId()) : null;
+        String postName = (user.getPostId() != null && user.getPostId() > 0)
+                ? postNameMap.get(user.getPostId()) : null;
         return new UserVO(
                 vo.id(), vo.username(), vo.nickname(), vo.realName(),
                 vo.email(), vo.phone(), vo.avatar(),

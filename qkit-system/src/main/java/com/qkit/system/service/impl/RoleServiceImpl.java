@@ -83,7 +83,7 @@ public class RoleServiceImpl implements RoleService {
     public R<Long> create(RoleSaveDTO dto) {
         Long count = roleMapper.selectCount(new LambdaQueryWrapper<Role>()
                 .eq(Role::getCode, dto.code()));
-        if (count > 0) throw new BusinessException(ErrorCode.ROLE_NOT_FOUND);
+        if (count > 0) throw new BusinessException(ErrorCode.ROLE_EXISTS);
         if ("admin".equals(dto.code())) throw new BusinessException(ErrorCode.ROLE_SYSTEM_PROTECTED);
         Role role = roleConvert.toEntity(dto);
         if (role.getDataScope() == null) role.setDataScope(2);

@@ -1,6 +1,7 @@
 package com.qkit.system.controller.admin;
 
 import cn.dev33.satoken.annotation.SaIgnore;
+import cn.dev33.satoken.stp.StpUtil;
 import com.qkit.common.api.R;
 import com.qkit.common.util.WebUtil;
 import com.qkit.system.domain.dto.LoginDTO;
@@ -8,6 +9,7 @@ import com.qkit.system.domain.vo.CaptchaVO;
 import com.qkit.system.domain.vo.LoginUserVO;
 import com.qkit.system.domain.vo.LoginVO;
 import com.qkit.system.service.AuthService;
+import com.qkit.system.service.PermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final PermissionService permissionService;
 
     @Operation(summary = "生成图形验证码")
     @SaIgnore
@@ -52,7 +55,7 @@ public class AuthController {
     @Operation(summary = "当前用户权限码列表")
     @GetMapping("/perms")
     public R<java.util.List<String>> perms() {
-        R<LoginUserVO> me = authService.me();
-        return R.ok(me.getData() == null ? java.util.List.of() : me.getData().permissions());
+        // 直接复用 PermissionService，避免走 me() 重复查询用户实体
+        return R.ok(permissionService.getUserPermissions(StpUtil.getLoginIdAsLong()));
     }
 }
