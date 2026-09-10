@@ -2,6 +2,8 @@ package com.qkit.common.util;
 
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
+import com.qkit.common.api.ErrorCode;
+import com.qkit.common.exception.BusinessException;
 
 import java.time.LocalDateTime;
 
@@ -21,7 +23,7 @@ public final class TimeUtil {
      *
      * @param text 前端传入的时间字符串，空白视为未传
      * @return 解析结果；入参为空时返回 {@code null}
-     * @throws IllegalArgumentException 格式无法识别时抛出，由全局异常处理统一转为 400
+     * @throws BusinessException 格式无法识别时抛出 {@link ErrorCode#TIME_FORMAT_INVALID}，由全局异常处理统一封装
      */
     public static LocalDateTime parseNullable(String text) {
         if (StrUtil.isBlank(text)) {
@@ -30,7 +32,7 @@ public final class TimeUtil {
         try {
             return DateUtil.parse(text.trim()).toLocalDateTime();
         } catch (Exception e) {
-            throw new IllegalArgumentException("时间格式不正确：" + text);
+            throw new BusinessException(ErrorCode.TIME_FORMAT_INVALID, text);
         }
     }
 }

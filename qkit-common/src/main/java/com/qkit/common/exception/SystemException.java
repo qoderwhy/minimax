@@ -31,7 +31,7 @@ public sealed class SystemException extends RuntimeException permits SystemExcep
         private static final long serialVersionUID = 1L;
 
         public Unchecked(String message, Throwable cause) {
-            super(500, message, cause);
+            super(ErrorCode.INTERNAL_ERROR.getCode(), message, cause);
         }
     }
 }

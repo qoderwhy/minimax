@@ -307,7 +307,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qkit.common.api.R;
-import com.qkit.common.enums.ErrorCode;
+import com.qkit.common.api.ErrorCode;
 import com.qkit.common.exception.BusinessException;
 import com.qkit.system.convert.UserConvert;
 import com.qkit.system.domain.dto.UserSaveDTO;

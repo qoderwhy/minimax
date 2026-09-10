@@ -115,7 +115,7 @@ public class UserServiceImpl implements UserService {
         try {
             outputStream = response.getOutputStream();
         } catch (IOException e) {
-            throw new SystemException(ErrorCode.EXPORT_ERROR, "导出失败，请稍后重试", e);
+            throw new SystemException(ErrorCode.EXPORT_ERROR, ErrorCode.EXPORT_ERROR.getMessage(), e);
         }
 
         // 分批读取 + 流式写出，避免整表载入内存

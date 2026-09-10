@@ -95,29 +95,36 @@ com.qkit.system
 
 ```
 com.qkit.common
-├── api/                             # 统一响应 R（R 自身带分页字段 total/pageNum/pageSize，见 05 §1，无需独立 PageResult）
-│   └── R.java
-├── enums/                           # 通用枚举（ErrorCode、CommonStatusEnum 等）
-│   └── ErrorCode.java
-├── exception/                       # BusinessException / GlobalExceptionHandler
-│   ├── BusinessException.java
-│   └── GlobalExceptionHandler.java
-├── entity/                          # 公共实体基类
-│   └── BaseEntity.java              # 5 个公共字段 + 主键 id，所有 Entity 继承
-├── validation/                      # 校验分组
-│   └── group/                       # @Validated(SaveGroup.class) 分组注解
-│       ├── SaveGroup.java
-│       ├── UpdateGroup.java
-│       └── DefaultGroup.java（兜底，不分组时匹配）
+├── api/                             # 统一响应 R + 错误码（R 自身带分页字段 total/pageNum/pageSize，见 05 §1，无需独立 PageResult）
+│   ├── R.java
+│   └── ErrorCode.java               # 错误码集中维护
+├── cache/                           # 缓存抽象
+│   └── CacheService.java
 ├── constant/                        # 常量
 │   ├── CacheConstants.java
 │   └── SecurityConstants.java
+├── entity/                          # 公共实体基类
+│   └── BaseEntity.java              # 5 个公共字段 + 主键 id，所有 Entity 继承
+├── exception/                       # BusinessException / SystemException / GlobalExceptionHandler
+│   ├── BusinessException.java
+│   ├── SystemException.java
+│   └── GlobalExceptionHandler.java
+├── log/                             # 操作日志 SPI
+│   └── spi/
+│       ├── OperLogRecord.java
+│       └── OperLogSink.java
+├── transaction/                     # 事务工具
+│   └── TransactionUtils.java
 ├── util/                            # 工具类（基于 Hutool 二次封装）
-└── annotation/                      # 通用注解（@Dict 字典翻译等）
+└── validation/                      # 校验分组
+    └── group/                       # @Validated(SaveGroup.class) 分组注解
+        ├── SaveGroup.java
+        ├── UpdateGroup.java
+        └── DefaultGroup.java（兜底，不分组时匹配）
 ```
 
 > **包位置铁律**：
-> - `enums/ErrorCode` ← 错误码枚举（被 Service/Manager throw new BusinessException(ErrorCode.XXX) 引用）
+> - `api/ErrorCode` ← 错误码枚举（被 Service/Manager throw new BusinessException(ErrorCode.XXX) 引用）
 > - `entity/BaseEntity` ← Entity 继承的公共基类
 > - `validation/group/` ← SaveGroup/UpdateGroup/DefaultGroup 三档分组
 > - 业务模块自定义注解放 `com.qkit.<module>.annotation/`；框架级注解放 `com.qkit.framework.<sub>.annotation/`，**不在** common 下重复声明

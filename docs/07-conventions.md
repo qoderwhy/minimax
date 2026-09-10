@@ -267,7 +267,7 @@ package com.qkit.system.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.qkit.common.enums.ErrorCode;
+import com.qkit.common.api.ErrorCode;
 import com.qkit.common.exception.BusinessException;
 import com.qkit.system.convert.UserConvert;
 import com.qkit.system.domain.dto.UserSaveDTO;
