@@ -127,6 +127,13 @@ public interface UserConvert {
 | B13 | `@Transactional` 加在 Controller | 移到 Service |
 | B14 | 密码 / token 输出日志 | 脱敏或剔除 |
 | B15 | 金额用 `double / float` | 用 `BigDecimal` 或 `Long`（分） |
+| B16 | 在 `@PostConstruct` 里做依赖其它 Bean / 需要事务或异步的初始化 | 用 `CommandLineRunner` / `ApplicationRunner`（全容器就绪、AOP 生效），加 `@Order` 并 `try/catch` 兜底 |
+
+> **B16 说明**：`@PostConstruct` 在**单个 Bean** 初始化完成时执行，容器仍在刷新——仅自身注入的依赖可用，事务 / 异步等 AOP 代理**不生效**，也不保证其它 Bean 已就绪。按场景取舍：
+> - **可以用 `@PostConstruct`**：仅用自身注入依赖、无需事务/代理的轻量初始化（参数校验、内存索引构建、本机状态装配）。
+> - **改用 `CommandLineRunner` / `ApplicationRunner`**：依赖多个组件、需要事务/异步/排序、或需要启动参数的预热（如把字典、`sys_config` 载入 Redis）；用 `@Order` 控制顺序，并 `try/catch` 兜底避免阻断启动。
+>
+> 本项目 `ConfigServiceImpl.run()`、`DictServiceImpl.run()` 采用后者。注意：`CommandLineRunner` 执行时 Web 容器已开始对外服务，预热未完成时缓存**必须有回源兜底**（本项目的 `ConfigService.getValue` 与 `DictService` 的懒加载均具备）。
 
 ## 3. 前端 TypeScript / Vue 规范
 

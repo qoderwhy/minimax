@@ -164,7 +164,7 @@ public class ConfigServiceImpl implements ConfigService, CommandLineRunner {
         configs.forEach(c -> setCache(c.getConfigKey(), c.getConfigValue()));
     }
 
-    /** 启动预热：与字典缓存保持同一时机（应用上下文就绪后），避免 @PostConstruct 阶段访问数据库 */
+    /** 启动预热：与字典缓存保持同一时机（应用上下文就绪后，事务/异步等 AOP 可用），失败仅告警不阻断启动 */
     @Override
     public void run(String... args) {
         try {
