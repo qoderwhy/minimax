@@ -19,7 +19,7 @@ export interface RoleSave {
   dataScope: number
   sort: number
   remark?: string
-  menuIds: number[]
+  /** 自定义数据权限的部门；菜单授权走 assignMenu，不在此提交 */
   deptIds?: number[]
 }
 
@@ -43,10 +43,10 @@ export function getRole(id: number) {
   return request.get<RoleItem>({ url: `/admin-api/system/role/detail/${id}` })
 }
 
-export function saveRole(data: RoleSave) {
+export function saveRole(data: RoleSave): Promise<number | boolean> {
   return data.id
-    ? request.put<void>({ url: '/admin-api/system/role/update', data })
-    : request.post<void>({ url: '/admin-api/system/role/create', data })
+    ? request.put<boolean>({ url: '/admin-api/system/role/update', data })
+    : request.post<number>({ url: '/admin-api/system/role/create', data })
 }
 
 export function deleteRole(id: number) {
@@ -59,4 +59,14 @@ export function getRoleDeptIds(roleId: number) {
 
 export function assignRoleDept(roleId: number, deptIds: number[]) {
   return request.put<void>({ url: '/admin-api/system/role/assign-dept', params: { roleId }, data: deptIds })
+}
+
+/** 查询角色已分配菜单 ID（与 assign-dept 对称，供授权弹窗回显） */
+export function getRoleMenuIds(roleId: number) {
+  return request.get<number[]>({ url: '/admin-api/system/role/menu-ids', params: { roleId } })
+}
+
+/** 分配菜单（menuIds 为空表示清空该角色的菜单权限） */
+export function assignMenu(roleId: number, menuIds: number[]) {
+  return request.put<boolean>({ url: '/admin-api/system/role/assign-menu', params: { roleId }, data: menuIds })
 }

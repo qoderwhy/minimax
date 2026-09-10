@@ -10,7 +10,10 @@ public record RoleQueryDTO(
         Long pageSize
 ) implements Serializable {
 
-    public static RoleQueryDTO of(Long pageNum, Long pageSize) {
-        return new RoleQueryDTO(null, null, null, pageNum, pageSize);
+    /** 仅补齐分页默认值，保留其余查询条件 */
+    public RoleQueryDTO withPageDefaults() {
+        return new RoleQueryDTO(name, code, status,
+                pageNum == null ? 1L : pageNum,
+                pageSize == null ? 10L : pageSize);
     }
 }

@@ -39,11 +39,7 @@ public class UserController {
     @GetMapping("/page")
     @SaCheckPermission("system:user:page")
     public R<List<UserVO>> page(UserQueryDTO query) {
-        if (query.pageNum() == null || query.pageSize() == null) {
-            query = UserQueryDTO.of(
-                    query.pageNum() == null ? 1L : query.pageNum(),
-                    query.pageSize() == null ? 10L : query.pageSize());
-        }
+        query = query.withPageDefaults();
         return userService.page(query);
     }
 

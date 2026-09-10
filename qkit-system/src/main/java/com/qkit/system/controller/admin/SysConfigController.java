@@ -30,11 +30,7 @@ public class SysConfigController {
     @GetMapping("/page")
     @SaCheckPermission("system:config:page")
     public R<List<SysConfigVO>> page(SysConfigQueryDTO query) {
-        if (query.pageNum() == null || query.pageSize() == null) {
-            query = SysConfigQueryDTO.of(
-                    query.pageNum() == null ? 1L : query.pageNum(),
-                    query.pageSize() == null ? 10L : query.pageSize());
-        }
+        query = query.withPageDefaults();
         return sysConfigService.page(query);
     }
 

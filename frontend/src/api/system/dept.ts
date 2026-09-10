@@ -6,7 +6,7 @@ export interface DeptItem {
   label: string
   sort?: number
   leader?: string
-  mobile?: string
+  phone?: string
   email?: string
   status?: number
   children?: DeptItem[]
@@ -18,7 +18,7 @@ export interface DeptSave {
   parentId: number
   sort: number
   leader?: string
-  mobile?: string
+  phone?: string
   email?: string
   status: number
 }

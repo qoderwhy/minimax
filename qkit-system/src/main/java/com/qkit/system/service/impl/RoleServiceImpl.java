@@ -122,6 +122,12 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public R<List<Long>> getMenuIds(Long roleId) {
+        return R.ok(roleMenuService.getMenuIdsByRoleId(roleId));
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public R<Boolean> assignMenu(Long roleId, List<Long> menuIds) {
         roleMenuService.saveByRoleId(roleId, menuIds);

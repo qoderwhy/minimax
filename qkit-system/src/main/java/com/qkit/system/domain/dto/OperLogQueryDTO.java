@@ -12,7 +12,10 @@ public record OperLogQueryDTO(
         Long pageSize
 ) implements Serializable {
 
-    public static OperLogQueryDTO of(Long pageNum, Long pageSize) {
-        return new OperLogQueryDTO(null, null, null, null, null, pageNum, pageSize);
+    /** 仅补齐分页默认值，保留其余查询条件 */
+    public OperLogQueryDTO withPageDefaults() {
+        return new OperLogQueryDTO(module, username, status, beginTime, endTime,
+                pageNum == null ? 1L : pageNum,
+                pageSize == null ? 10L : pageSize);
     }
 }

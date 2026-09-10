@@ -7,7 +7,7 @@ const list = ref<DeptItem[]>([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit' | 'addChild'>('add')
-const form = ref<DeptSave>({ id: undefined, name: '', parentId: 0, sort: 0, leader: '', mobile: '', email: '', status: 1 })
+const form = ref<DeptSave>({ id: undefined, name: '', parentId: 0, sort: 0, leader: '', phone: '', email: '', status: 1 })
 const formRef = ref()
 
 async function fetch() {
@@ -21,13 +21,13 @@ async function fetch() {
 
 function onAdd(root = true) {
   dialogMode.value = 'add'
-  form.value = { id: undefined, name: '', parentId: 0, sort: 0, leader: '', mobile: '', email: '', status: 1 }
+  form.value = { id: undefined, name: '', parentId: 0, sort: 0, leader: '', phone: '', email: '', status: 1 }
   dialogVisible.value = true
 }
 
 function onAddChild(parent: DeptItem) {
   dialogMode.value = 'addChild'
-  form.value = { id: undefined, name: '', parentId: parent.id, sort: 0, leader: '', mobile: '', email: '', status: 1 }
+  form.value = { id: undefined, name: '', parentId: parent.id, sort: 0, leader: '', phone: '', email: '', status: 1 }
   dialogVisible.value = true
 }
 
@@ -39,7 +39,7 @@ function onEdit(row: DeptItem) {
     parentId: row.parentId,
     sort: row.sort ?? 0,
     leader: row.leader || '',
-    mobile: row.mobile || '',
+    phone: row.phone || '',
     email: row.email || '',
     status: row.status ?? 1
   }
@@ -74,7 +74,7 @@ onMounted(fetch)
       <el-table v-loading="loading" :data="list" row-key="id" :tree-props="{ children: 'children' }" default-expand-all border>
         <el-table-column prop="label" label="部门名称" />
         <el-table-column prop="leader" label="负责人" width="120" />
-        <el-table-column prop="mobile" label="联系电话" width="140" />
+        <el-table-column prop="phone" label="联系电话" width="140" />
         <el-table-column prop="email" label="邮箱" width="200" />
         <el-table-column prop="sort" label="排序" width="80" />
         <el-table-column label="状态" width="100">
@@ -99,7 +99,7 @@ onMounted(fetch)
         </el-form-item>
         <el-form-item label="部门名称" prop="name"><el-input v-model="form.name" /></el-form-item>
         <el-form-item label="负责人"><el-input v-model="form.leader" /></el-form-item>
-        <el-form-item label="联系电话"><el-input v-model="form.mobile" /></el-form-item>
+        <el-form-item label="联系电话"><el-input v-model="form.phone" /></el-form-item>
         <el-form-item label="邮箱"><el-input v-model="form.email" /></el-form-item>
         <el-form-item label="排序"><el-input-number v-model="form.sort" :min="0" /></el-form-item>
         <el-form-item label="状态">

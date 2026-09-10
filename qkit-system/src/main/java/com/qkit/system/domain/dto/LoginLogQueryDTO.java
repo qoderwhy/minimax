@@ -11,7 +11,10 @@ public record LoginLogQueryDTO(
         Long pageSize
 ) implements Serializable {
 
-    public static LoginLogQueryDTO of(Long pageNum, Long pageSize) {
-        return new LoginLogQueryDTO(null, null, null, null, pageNum, pageSize);
+    /** 仅补齐分页默认值，保留其余查询条件 */
+    public LoginLogQueryDTO withPageDefaults() {
+        return new LoginLogQueryDTO(username, status, beginTime, endTime,
+                pageNum == null ? 1L : pageNum,
+                pageSize == null ? 10L : pageSize);
     }
 }

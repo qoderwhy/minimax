@@ -10,7 +10,10 @@ public record DictQueryDTO(
         Long pageSize
 ) implements Serializable {
 
-    public static DictQueryDTO of(Long pageNum, Long pageSize) {
-        return new DictQueryDTO(null, null, null, pageNum, pageSize);
+    /** 仅补齐分页默认值，保留其余查询条件 */
+    public DictQueryDTO withPageDefaults() {
+        return new DictQueryDTO(name, type, status,
+                pageNum == null ? 1L : pageNum,
+                pageSize == null ? 10L : pageSize);
     }
 }

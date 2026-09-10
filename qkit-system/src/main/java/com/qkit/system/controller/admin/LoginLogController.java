@@ -26,11 +26,7 @@ public class LoginLogController {
     @GetMapping("/page")
     @SaCheckPermission("system:login-log:page")
     public R<List<LoginLogVO>> page(LoginLogQueryDTO query) {
-        if (query.pageNum() == null || query.pageSize() == null) {
-            query = LoginLogQueryDTO.of(
-                    query.pageNum() == null ? 1L : query.pageNum(),
-                    query.pageSize() == null ? 10L : query.pageSize());
-        }
+        query = query.withPageDefaults();
         return loginLogService.page(query);
     }
 

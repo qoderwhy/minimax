@@ -21,6 +21,9 @@ public interface RoleService {
 
     R<Boolean> delete(List<Long> ids);
 
+    /** 查询角色已分配菜单 ID（授权回显用） */
+    R<List<Long>> getMenuIds(Long roleId);
+
     R<Boolean> assignMenu(Long roleId, List<Long> menuIds);
 
     R<List<Long>> getDeptIds(Long roleId);

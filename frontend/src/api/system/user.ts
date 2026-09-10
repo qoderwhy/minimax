@@ -4,7 +4,7 @@ export interface UserItem {
   id: number
   username: string
   nickname: string
-  mobile?: string
+  phone?: string
   email?: string
   status: number
   deptId?: number
@@ -12,6 +12,8 @@ export interface UserItem {
   postId?: number
   postName?: string
   createTime?: string
+  /** 仅 detail 接口返回，用于回显已分配角色 */
+  roleIds?: number[]
 }
 
 export interface UserSave {
@@ -19,7 +21,7 @@ export interface UserSave {
   username: string
   nickname: string
   password?: string
-  mobile?: string
+  phone?: string
   email?: string
   status: number
   deptId?: number
@@ -32,7 +34,7 @@ export interface UserQuery {
   pageSize?: number
   username?: string
   nickname?: string
-  mobile?: string
+  phone?: string
   status?: number
   deptId?: number
 }
@@ -45,10 +47,19 @@ export function getUser(id: number) {
   return request.get<UserItem>({ url: `/admin-api/system/user/detail/${id}` })
 }
 
-export function saveUser(data: UserSave) {
+export function saveUser(data: UserSave): Promise<number | boolean> {
   return data.id
-    ? request.put<void>({ url: '/admin-api/system/user/update', data })
-    : request.post<void>({ url: '/admin-api/system/user/create', data })
+    ? request.put<boolean>({ url: '/admin-api/system/user/update', data })
+    : request.post<number>({ url: '/admin-api/system/user/create', data })
+}
+
+/** 分配角色（角色不在用户主表上，需单独调用；roleIds 为空表示清空角色） */
+export function assignRole(userId: number, roleIds: number[]) {
+  return request.put<boolean>({
+    url: '/admin-api/system/user/assign-role',
+    params: { userId },
+    data: roleIds
+  })
 }
 
 export function saveUserStatus(data: UserSave) {

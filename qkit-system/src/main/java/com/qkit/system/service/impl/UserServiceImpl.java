@@ -53,6 +53,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
+    /** 内置超级管理员账号，禁止删除 / 停用 / 改名 */
+    private static final String ADMIN_USERNAME = "admin";
+
     private final UserMapper userMapper;
     private final DeptMapper deptMapper;
     private final PostMapper postMapper;
@@ -71,6 +74,7 @@ public class UserServiceImpl implements UserService {
                 query.pageSize() == null ? 10 : query.pageSize());
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
                 .like(StrUtil.isNotBlank(query.username()), User::getUsername, query.username())
+                .like(StrUtil.isNotBlank(query.nickname()), User::getNickname, query.nickname())
                 .like(StrUtil.isNotBlank(query.phone()), User::getPhone, query.phone())
                 .eq(query.status() != null, User::getStatus, query.status())
                 .eq(query.deptId() != null, User::getDeptId, query.deptId())
@@ -86,6 +90,7 @@ public class UserServiceImpl implements UserService {
     public void export(UserQueryDTO query, HttpServletResponse response) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
                 .like(StrUtil.isNotBlank(query.username()), User::getUsername, query.username())
+                .like(StrUtil.isNotBlank(query.nickname()), User::getNickname, query.nickname())
                 .like(StrUtil.isNotBlank(query.phone()), User::getPhone, query.phone())
                 .eq(query.status() != null, User::getStatus, query.status())
                 .eq(query.deptId() != null, User::getDeptId, query.deptId())
@@ -151,8 +156,10 @@ public class UserServiceImpl implements UserService {
     public R<Boolean> update(UserSaveDTO dto) {
         User exist = userMapper.selectById(dto.id());
         if (exist == null) throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        guardProtectedAccount(exist, dto);
 
-        if (!exist.getUsername().equals(dto.username())) {
+        // 仅在提交了新登录名时才做重名校验（状态切换等局部更新不会传 username）
+        if (StrUtil.isNotBlank(dto.username()) && !exist.getUsername().equals(dto.username())) {
             Long count = userMapper.selectCount(new LambdaQueryWrapper<User>()
                     .eq(User::getUsername, dto.username())
                     .ne(User::getId, dto.id()));
@@ -164,10 +171,32 @@ public class UserServiceImpl implements UserService {
         return R.ok(true);
     }
 
+    /**
+     * 内置管理员账号与当前登录用户的自我保护：
+     * 既不允许停用 / 改名 admin，也不允许停用自己，避免把管理员锁在系统外。
+     */
+    private void guardProtectedAccount(User exist, UserSaveDTO dto) {
+        boolean self = exist.getId().equals(StpUtil.getLoginIdAsLong());
+        boolean admin = ADMIN_USERNAME.equals(exist.getUsername());
+        if ((self || admin) && dto.status() != null && dto.status() == 0) {
+            throw new BusinessException(self ? ErrorCode.USER_CANNOT_DISABLE_SELF : ErrorCode.USER_PROTECTED);
+        }
+        if (admin && StrUtil.isNotBlank(dto.username()) && !ADMIN_USERNAME.equals(dto.username())) {
+            throw new BusinessException(ErrorCode.USER_PROTECTED);
+        }
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public R<Boolean> delete(List<Long> ids) {
         if (CollUtil.isEmpty(ids)) throw new BusinessException(ErrorCode.BAD_REQUEST);
+        if (ids.contains(StpUtil.getLoginIdAsLong())) {
+            throw new BusinessException(ErrorCode.USER_CANNOT_DELETE_SELF);
+        }
+        Long adminCount = userMapper.selectCount(new LambdaQueryWrapper<User>()
+                .in(User::getId, ids)
+                .eq(User::getUsername, ADMIN_USERNAME));
+        if (adminCount > 0) throw new BusinessException(ErrorCode.USER_PROTECTED);
         // 级联清理关联与在线会话，避免孤儿数据与残留权限
         userRoleMapper.delete(new LambdaQueryWrapper<UserRole>().in(UserRole::getUserId, ids));
         userPostMapper.delete(new LambdaQueryWrapper<UserPost>().in(UserPost::getUserId, ids));
@@ -217,6 +246,11 @@ public class UserServiceImpl implements UserService {
         update.setId(userId);
         update.setPassword(BCrypt.hashpw(dto.newPassword()));
         userMapper.updateById(update);
+        // 改密后强制下线所有会话，避免旧凭证继续有效
+        try {
+            StpUtil.logout(userId);
+        } catch (Exception ignored) {
+        }
         return R.ok(true);
     }
 

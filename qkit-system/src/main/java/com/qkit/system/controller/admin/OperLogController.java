@@ -26,11 +26,7 @@ public class OperLogController {
     @GetMapping("/page")
     @SaCheckPermission("system:oper-log:page")
     public R<List<OperLogVO>> page(OperLogQueryDTO query) {
-        if (query.pageNum() == null || query.pageSize() == null) {
-            query = OperLogQueryDTO.of(
-                    query.pageNum() == null ? 1L : query.pageNum(),
-                    query.pageSize() == null ? 10L : query.pageSize());
-        }
+        query = query.withPageDefaults();
         return operLogService.page(query);
     }
 
@@ -45,7 +41,7 @@ public class OperLogController {
 
     @Operation(summary = "清空操作日志")
     @DeleteMapping("/clean")
-    @SaCheckPermission("system:oper-log:delete")
+    @SaCheckPermission("system:oper-log:clean")
     @OperLog(module = "操作日志", name = "清空操作日志")
     public R<Boolean> clean() {
         return operLogService.clean();

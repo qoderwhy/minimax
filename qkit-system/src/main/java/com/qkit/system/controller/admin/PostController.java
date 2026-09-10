@@ -30,11 +30,7 @@ public class PostController {
     @GetMapping("/page")
     @SaCheckPermission("system:post:page")
     public R<List<PostVO>> page(PostQueryDTO query) {
-        if (query.pageNum() == null || query.pageSize() == null) {
-            query = PostQueryDTO.of(
-                    query.pageNum() == null ? 1L : query.pageNum(),
-                    query.pageSize() == null ? 10L : query.pageSize());
-        }
+        query = query.withPageDefaults();
         return postService.page(query);
     }
 

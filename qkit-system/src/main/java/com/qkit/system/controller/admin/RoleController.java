@@ -30,11 +30,7 @@ public class RoleController {
     @GetMapping("/page")
     @SaCheckPermission("system:role:page")
     public R<List<RoleVO>> page(RoleQueryDTO query) {
-        if (query.pageNum() == null || query.pageSize() == null) {
-            query = RoleQueryDTO.of(
-                    query.pageNum() == null ? 1L : query.pageNum(),
-                    query.pageSize() == null ? 10L : query.pageSize());
-        }
+        query = query.withPageDefaults();
         return roleService.page(query);
     }
 
@@ -77,6 +73,13 @@ public class RoleController {
     @RepeatSubmit
     public R<Boolean> delete(@RequestBody List<Long> ids) {
         return roleService.delete(ids);
+    }
+
+    @Operation(summary = "查询角色已分配菜单")
+    @GetMapping("/menu-ids")
+    @SaCheckPermission("system:role:assign-menu")
+    public R<List<Long>> getMenuIds(@RequestParam Long roleId) {
+        return roleService.getMenuIds(roleId);
     }
 
     @Operation(summary = "分配菜单")

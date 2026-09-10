@@ -1,19 +1,29 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
-import { pageRole, saveRole, deleteRole, getRoleDeptIds, assignRoleDept, type RoleItem, type RoleSave, type RoleQuery } from '@/api/system/role'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { pageRole, saveRole, deleteRole, getRoleDeptIds, getRoleMenuIds, assignMenu, type RoleItem, type RoleSave, type RoleQuery } from '@/api/system/role'
 import { listDept } from '@/api/system/dept'
+import { treeMenu, type MenuItem } from '@/api/system/menu'
+import { usePermissionStore } from '@/stores/permission'
 
 const query = reactive<RoleQuery>({ pageNum: 1, pageSize: 10, name: '', code: '', status: undefined })
 const list = ref<RoleItem[]>([])
 const total = ref(0)
 const loading = ref(false)
 const deptTree = ref<any[]>([])
+const deptTreeRef = ref()
+const menuTree = ref<MenuItem[]>([])
+const menuTreeRef = ref()
 
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<RoleSave>({ id: undefined, name: '', code: '', status: 1, dataScope: 1, sort: 0, remark: '', menuIds: [] })
+const form = ref<RoleSave>({ id: undefined, name: '', code: '', status: 1, dataScope: 2, sort: 0, remark: '', deptIds: [] })
 const formRef = ref()
+
+const permStore = usePermissionStore()
+/** 无授权权限时不请求/不提交对应授权数据，避免只有「编辑角色」权限的角色被 403 打断 */
+const canAssignMenu = computed(() => permStore.hasPermission('system:role:assign-menu'))
+const canAssignDept = computed(() => permStore.hasPermission('system:role:assign-dept'))
 
 async function fetch() {
   loading.value = true
@@ -41,21 +51,31 @@ function onReset() {
 
 function onAdd() {
   dialogMode.value = 'add'
-  form.value = { id: undefined, name: '', code: '', status: 1, dataScope: 2, sort: 0, remark: '', menuIds: [], deptIds: [] }
+  form.value = { id: undefined, name: '', code: '', status: 1, dataScope: 2, sort: 0, remark: '', deptIds: [] }
   dialogVisible.value = true
+  nextTick(() => {
+    menuTreeRef.value?.setCheckedKeys([])
+    deptTreeRef.value?.setCheckedKeys([])
+  })
 }
 
-function onEdit(row: RoleItem) {
+async function onEdit(row: RoleItem) {
   dialogMode.value = 'edit'
   form.value = {
     id: row.id, name: row.name, code: row.code, status: row.status,
     dataScope: row.dataScope, sort: row.sort, remark: row.remark || '',
-    menuIds: [], deptIds: []
+    deptIds: []
   }
   dialogVisible.value = true
-  loadDeptTree().then(() => {
-    if (row.dataScope === 5) getRoleDeptIds(row.id).then(ids => { form.value.deptIds = ids })
-  })
+  // 菜单与自定义部门都不在角色主表上，需单独查询回显
+  const [menuIds, deptIds] = await Promise.all([
+    canAssignMenu.value ? getRoleMenuIds(row.id) : Promise.resolve<number[]>([]),
+    row.dataScope === 5 && canAssignDept.value ? getRoleDeptIds(row.id) : Promise.resolve<number[]>([])
+  ])
+  form.value.deptIds = deptIds
+  await nextTick()
+  menuTreeRef.value?.setCheckedKeys(menuIds)
+  deptTreeRef.value?.setCheckedKeys(deptIds)
 }
 
 async function loadDeptTree() {
@@ -76,10 +96,31 @@ async function loadDeptTree() {
   }
 }
 
+async function loadMenuTree() {
+  try {
+    menuTree.value = await treeMenu()
+  } catch (e) {
+    console.warn('加载菜单树失败', e)
+    menuTree.value = []
+  }
+}
+
 async function onSave() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
-  await saveRole(form.value)
+  if (form.value.dataScope === 5) {
+    form.value.deptIds = (deptTreeRef.value?.getCheckedKeys() ?? []) as number[]
+  } else {
+    form.value.deptIds = []
+  }
+  const res = await saveRole(form.value)
+  const roleId = typeof res === 'number' ? res : form.value.id
+  // 菜单不在角色主表上，保存后单独提交；半选节点（目录）也要落库，否则父级菜单不会显示
+  if (roleId && canAssignMenu.value) {
+    const checked = (menuTreeRef.value?.getCheckedKeys() ?? []) as number[]
+    const halfChecked = (menuTreeRef.value?.getHalfCheckedKeys() ?? []) as number[]
+    await assignMenu(roleId, [...checked, ...halfChecked])
+  }
   ElMessage.success('保存成功')
   dialogVisible.value = false
   fetch()
@@ -92,7 +133,12 @@ async function onDelete(row: RoleItem) {
   fetch()
 }
 
-onMounted(() => { fetch(); loadDeptTree() })
+onMounted(() => {
+  fetch()
+  // 授权树按权限加载，避免无权限角色进入页面即请求 403
+  if (canAssignDept.value) loadDeptTree()
+  if (canAssignMenu.value) loadMenuTree()
+})
 </script>
 
 <template>
@@ -174,8 +220,29 @@ onMounted(() => { fetch(); loadDeptTree() })
           </el-radio-group>
         </el-form-item>
         <el-form-item label="备注"><el-input v-model="form.remark" type="textarea" /></el-form-item>
+        <el-form-item label="菜单权限" v-permission="'system:role:assign-menu'">
+          <div class="tree-box">
+            <el-tree
+              ref="menuTreeRef"
+              :data="menuTree"
+              show-checkbox
+              node-key="id"
+              :props="{ label: 'name', children: 'children' }"
+              default-expand-all
+            />
+          </div>
+        </el-form-item>
         <el-form-item label="部门" v-if="form.dataScope===5" v-permission="'system:role:assign-dept'">
-          <el-tree :data="deptTree" show-checkbox node-key="id" :props="{label:'name',children:'children'}" v-model="form.deptIds" default-expand-all />
+          <div class="tree-box">
+            <el-tree
+              ref="deptTreeRef"
+              :data="deptTree"
+              show-checkbox
+              node-key="id"
+              :props="{ label: 'name', children: 'children' }"
+              default-expand-all
+            />
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -185,3 +252,14 @@ onMounted(() => { fetch(); loadDeptTree() })
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.tree-box {
+  width: 100%;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+</style>

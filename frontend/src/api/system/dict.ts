@@ -93,6 +93,11 @@ export function deleteDictItem(id: number) {
   return request.delete<void>({ url: '/admin-api/system/dict/item/delete', data: [id] })
 }
 
+/**
+ * 字典下拉数据源。
+ * 走后端公开接口 /dict/type/{typeCode}（仅返回启用项），
+ * 避免普通用户没有 system:dict:list 权限时 403。
+ */
 export function listDictItem(dictType: string) {
-  return request.get<DictItem[]>({ url: '/admin-api/system/dict/items', params: { type: dictType } })
+  return request.get<DictItem[]>({ url: `/admin-api/system/dict/type/${encodeURIComponent(dictType)}` })
 }

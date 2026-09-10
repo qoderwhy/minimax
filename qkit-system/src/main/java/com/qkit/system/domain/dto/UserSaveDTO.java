@@ -13,6 +13,7 @@ public record UserSaveDTO(
         @NotNull(message = "ID不能为空", groups = UpdateGroup.class) Long id,
         @NotBlank(message = "登录名不能为空", groups = SaveGroup.class)
         @Size(max = 30, message = "登录名长度不能超过30") String username,
+        @NotBlank(message = "密码不能为空", groups = SaveGroup.class)
         @Size(min = 8, max = 32, message = "密码长度必须在8-32位之间", groups = SaveGroup.class) String password,
         String nickname,
         String realName,

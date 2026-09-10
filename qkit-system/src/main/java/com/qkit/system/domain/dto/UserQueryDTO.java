@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 public record UserQueryDTO(
         String username,
+        String nickname,
         String phone,
         Integer status,
         Long deptId,
@@ -11,7 +12,10 @@ public record UserQueryDTO(
         Long pageSize
 ) implements Serializable {
 
-    public static UserQueryDTO of(Long pageNum, Long pageSize) {
-        return new UserQueryDTO(null, null, null, null, pageNum, pageSize);
+    /** 仅补齐分页默认值，保留其余查询条件 */
+    public UserQueryDTO withPageDefaults() {
+        return new UserQueryDTO(username, nickname, phone, status, deptId,
+                pageNum == null ? 1L : pageNum,
+                pageSize == null ? 10L : pageSize);
     }
 }

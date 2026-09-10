@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
-import { pageUser, saveUser, deleteUser, resetUserPassword, updateUserStatus, exportUser, type UserItem, type UserQuery, type UserSave } from '@/api/system/user'
+import { pageUser, getUser, saveUser, deleteUser, resetUserPassword, updateUserStatus, exportUser, assignRole, type UserItem, type UserQuery, type UserSave } from '@/api/system/user'
 import { listRole, type RoleItem } from '@/api/system/role'
 import { listDept, type DeptItem } from '@/api/system/dept'
 import { listPost, type PostItem } from '@/api/system/post'
 import { required, mobile, email } from '@/utils/validate'
+import { usePermissionStore } from '@/stores/permission'
 
-const query = reactive<UserQuery>({ pageNum: 1, pageSize: 10, username: '', nickname: '', mobile: '', status: undefined, deptId: undefined })
+const query = reactive<UserQuery>({ pageNum: 1, pageSize: 10, username: '', nickname: '', phone: '', status: undefined, deptId: undefined })
 const list = ref<UserItem[]>([])
 const total = ref(0)
 const loading = ref(false)
@@ -18,14 +19,23 @@ const postList = ref<PostItem[]>([])
 
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<UserSave>({ id: undefined, username: '', nickname: '', password: '', mobile: '', email: '', status: 1, deptId: undefined, postId: undefined, roleIds: [] })
+const form = ref<UserSave>({ id: undefined, username: '', nickname: '', password: '', phone: '', email: '', status: 1, deptId: undefined, postId: undefined, roleIds: [] })
 const formRef = ref()
+
+const permStore = usePermissionStore()
+/** 无对应权限时不发起详情/授权请求，避免只有「编辑」权限的角色被 403 打断保存流程 */
+const canViewUserDetail = computed(() => permStore.hasPermission('system:user:detail'))
+const canAssignRole = computed(() => permStore.hasPermission('system:user:assign-role'))
 
 const formRules = computed(() => ({
   username: [required('请输入用户名')],
   nickname: [required('请输入昵称')],
-  password: [...(dialogMode.value === 'add' ? [required('请输入密码')] : [])],
-  mobile: [mobile()],
+  password: [
+    ...(dialogMode.value === 'add'
+      ? [required('请输入密码'), { min: 8, max: 32, message: '密码长度必须在8-32位之间', trigger: 'blur' as const }]
+      : [])
+  ],
+  phone: [mobile()],
   email: [email()]
 }))
 
@@ -48,7 +58,7 @@ function onSearch() {
 function onReset() {
   query.username = ''
   query.nickname = ''
-  query.mobile = ''
+  query.phone = ''
   query.status = undefined
   query.deptId = undefined
   query.pageNum = 1
@@ -56,30 +66,36 @@ function onReset() {
 }
 
 async function loadOptions() {
-  roleList.value = await listRole()
-  deptList.value = await listDept()
-  postList.value = await listPost()
+  // 逐个容错加载：某个下拉因权限不足失败，不应连带其余下拉一起加载不出来
+  await Promise.all([
+    canAssignRole.value
+      ? listRole().then((r) => { roleList.value = r }).catch(() => {})
+      : Promise.resolve(),
+    listDept().then((d) => { deptList.value = d }).catch(() => {}),
+    listPost().then((p) => { postList.value = p }).catch(() => {})
+  ])
 }
 
 function onAdd() {
   dialogMode.value = 'add'
-  form.value = { id: undefined, username: '', nickname: '', password: '', mobile: '', email: '', status: 1, deptId: undefined, postId: undefined, roleIds: [] }
+  form.value = { id: undefined, username: '', nickname: '', password: '', phone: '', email: '', status: 1, deptId: undefined, postId: undefined, roleIds: [] }
   dialogVisible.value = true
 }
 
 async function onEdit(row: UserItem) {
   dialogMode.value = 'edit'
-  // 简化：实际应调用 getUser 获取详情（含角色/岗位），这里使用列表数据近似
+  // 列表数据不含已分配角色，需取详情回显；无详情权限时退化为使用列表行数据
+  const detail = canViewUserDetail.value ? await getUser(row.id) : row
   form.value = {
-    id: row.id,
-    username: row.username,
-    nickname: row.nickname,
-    mobile: row.mobile || '',
-    email: row.email || '',
-    status: row.status,
-    deptId: row.deptId,
-    postId: row.postId,
-    roleIds: []
+    id: detail.id,
+    username: detail.username,
+    nickname: detail.nickname,
+    phone: detail.phone || '',
+    email: detail.email || '',
+    status: detail.status,
+    deptId: detail.deptId,
+    postId: detail.postId,
+    roleIds: detail.roleIds ?? []
   }
   dialogVisible.value = true
 }
@@ -87,7 +103,10 @@ async function onEdit(row: UserItem) {
 async function onSave() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
-  await saveUser(form.value)
+  const res = await saveUser(form.value)
+  // 角色不在用户主表上，保存后单独调用分配角色接口（新增接口返回新用户 ID）
+  const userId = typeof res === 'number' ? res : form.value.id
+  if (userId && canAssignRole.value) await assignRole(userId, form.value.roleIds ?? [])
   ElMessage.success('保存成功')
   dialogVisible.value = false
   fetch()
@@ -101,14 +120,19 @@ async function onDelete(row: UserItem) {
 }
 
 async function onResetPwd(row: UserItem) {
-  const { value } = await ElMessageBox.prompt('请输入新密码（6-20 位）', '重置密码', { inputPattern: /^\S{6,20}$/, inputErrorMessage: '密码格式不正确' })
+  const { value } = await ElMessageBox.prompt('请输入新密码（8-32 位）', '重置密码', { inputPattern: /^\S{8,32}$/, inputErrorMessage: '密码长度必须在8-32位之间' })
   await resetUserPassword(row.id, value)
   ElMessage.success('密码已重置')
 }
 
 async function onStatusChange(row: UserItem) {
-  await updateUserStatus(row.id, row.status)
-  ElMessage.success('状态已更新')
+  try {
+    await updateUserStatus(row.id, row.status)
+    ElMessage.success('状态已更新')
+  } catch (e) {
+    // 后端可能拒绝（如停用自己或内置管理员），失败时回滚开关状态
+    row.status = row.status === 1 ? 0 : 1
+  }
 }
 
 async function onExport() {
@@ -147,7 +171,7 @@ onMounted(() => {
       <el-form :model="query" inline>
         <el-form-item label="用户名"><el-input v-model="query.username" clearable /></el-form-item>
         <el-form-item label="昵称"><el-input v-model="query.nickname" clearable /></el-form-item>
-        <el-form-item label="手机号"><el-input v-model="query.mobile" clearable /></el-form-item>
+        <el-form-item label="手机号"><el-input v-model="query.phone" clearable /></el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" clearable placeholder="全部" style="width: 120px">
             <el-option label="启用" :value="1" />
@@ -170,7 +194,7 @@ onMounted(() => {
         <el-table-column type="index" label="#" width="50" />
         <el-table-column prop="username" label="用户名" />
         <el-table-column prop="nickname" label="昵称" />
-        <el-table-column prop="mobile" label="手机号" />
+        <el-table-column prop="phone" label="手机号" />
         <el-table-column prop="email" label="邮箱" />
         <el-table-column prop="deptName" label="部门" />
         <el-table-column prop="postName" label="岗位" />
@@ -211,12 +235,12 @@ onMounted(() => {
         <el-form-item v-if="dialogMode === 'add'" label="密码" prop="password">
           <el-input v-model="form.password" type="password" show-password />
         </el-form-item>
-        <el-form-item label="手机号"><el-input v-model="form.mobile" /></el-form-item>
+        <el-form-item label="手机号"><el-input v-model="form.phone" /></el-form-item>
         <el-form-item label="邮箱"><el-input v-model="form.email" /></el-form-item>
         <el-form-item label="部门">
           <el-tree-select v-model="form.deptId" :data="deptList" :props="{ value: 'id', label: 'name' } as any" check-strictly placeholder="选择部门" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="角色">
+        <el-form-item label="角色" v-permission="'system:user:assign-role'">
           <el-select v-model="form.roleIds" multiple style="width: 100%">
             <el-option v-for="r in roleList" :key="r.id" :label="r.name" :value="r.id" />
           </el-select>

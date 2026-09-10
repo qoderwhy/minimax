@@ -20,6 +20,9 @@ public enum ErrorCode {
     USER_LOCKED(10004, "账号已锁定，请稍后再试"),
     USER_EXISTS(10005, "用户名已存在"),
     USERNAME_OR_PASSWORD_ERROR(10006, "用户名或密码错误"),
+    USER_CANNOT_DELETE_SELF(10007, "不能删除当前登录用户"),
+    USER_CANNOT_DISABLE_SELF(10008, "不能停用当前登录用户"),
+    USER_PROTECTED(10009, "系统内置管理员账号，不允许操作"),
 
     CAPTCHA_INVALID(10101, "验证码错误或已过期"),
     CAPTCHA_REQUIRED(10102, "请输入验证码"),

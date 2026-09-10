@@ -20,6 +20,7 @@ import com.qkit.system.domain.vo.LoginUserVO;
 import com.qkit.system.domain.vo.LoginVO;
 import com.qkit.system.log.LoginLogRecorder;
 import com.qkit.system.service.AuthService;
+import com.qkit.system.service.SysConfigService;
 import com.qkit.system.service.UserService;
 import com.qkit.system.enums.DataScopeEnum;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,9 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
+    /** 登录验证码开关的系统参数键名 */
+    private static final String CAPTCHA_ENABLED_KEY = "sys.login.captchaEnabled";
+
     // 缓存验证码
     private final CacheService cacheService;
     private final UserService userService;
@@ -41,6 +45,7 @@ public class AuthServiceImpl implements AuthService {
     private final PermissionService permissionService;
     private final LoginLogRecorder loginLogRecorder;
     private final UserConvert userConvert;
+    private final SysConfigService sysConfigService;
 
     @Override
     public R<CaptchaVO> captcha() {
@@ -58,14 +63,21 @@ public class AuthServiceImpl implements AuthService {
         // 1. 校验失败次数
         loginRateLimiter.validate(dto.username());
 
-        // 2. 校验图形验证码
-        if (StrUtil.isNotBlank(dto.captchaId())) {
-            String code = cacheService.get(CacheConstants.CAPTCHA_KEY_PREFIX + dto.captchaId());
+        // 2. 校验图形验证码（可通过 sys.login.captchaEnabled 关闭，默认强制开启）
+        if (sysConfigService.getBoolean(CAPTCHA_ENABLED_KEY, true)) {
+            if (StrUtil.isBlank(dto.captchaId())) {
+                loginLogRecorder.record(null, dto.username(), clientIp, 0, "缺少验证码");
+                throw new BusinessException(ErrorCode.CAPTCHA_REQUIRED);
+            }
+            String captchaKey = CacheConstants.CAPTCHA_KEY_PREFIX + dto.captchaId();
+            String code = cacheService.get(captchaKey);
             if (code == null || !code.equalsIgnoreCase(dto.captchaCode())) {
+                // 校验失败即作废验证码，避免同一 captchaId 被反复暴力尝试
+                cacheService.delete(captchaKey);
                 loginLogRecorder.record(null, dto.username(), clientIp, 0, "验证码错误");
                 throw new BusinessException(ErrorCode.CAPTCHA_INVALID);
             }
-            cacheService.delete(CacheConstants.CAPTCHA_KEY_PREFIX + dto.captchaId());
+            cacheService.delete(captchaKey);
         }
 
         // 3. 校验用户
