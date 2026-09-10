@@ -18,9 +18,9 @@ import com.qkit.system.domain.entity.SysConfig;
 import com.qkit.system.domain.vo.SysConfigVO;
 import com.qkit.system.mapper.SysConfigMapper;
 import com.qkit.system.service.SysConfigService;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -38,7 +38,7 @@ import java.util.List;
 @Service
 @Validated
 @RequiredArgsConstructor
-public class SysConfigServiceImpl implements SysConfigService {
+public class SysConfigServiceImpl implements SysConfigService, CommandLineRunner {
 
     /** 是否系统内置参数，内置参数不允许删除或修改键名 */
     private static final String BUILTIN = "Y";
@@ -164,8 +164,9 @@ public class SysConfigServiceImpl implements SysConfigService {
         configs.forEach(c -> setCache(c.getConfigKey(), c.getConfigValue()));
     }
 
-    @PostConstruct
-    public void initCache() {
+    /** 启动预热：与字典缓存保持同一时机（应用上下文就绪后），避免 @PostConstruct 阶段访问数据库 */
+    @Override
+    public void run(String... args) {
         try {
             loadAllToCache();
             log.info("系统参数已加载到 Redis 缓存");

@@ -109,7 +109,7 @@ npm install
 npm run dev
 ```
 
-浏览器打开 `http://localhost:5173`，默认账号 `admin / admin1234`。
+浏览器打开 `http://localhost:5173`，默认账号 `admin / admin123`（首次登录后请立即修改）。
 
 ### 5. 一键启动（推荐）
 

@@ -1,31 +1,55 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { pageUser, getUser, saveUser, deleteUser, resetUserPassword, updateUserStatus, exportUser, assignRole, type UserItem, type UserQuery, type UserSave } from '@/api/system/user'
 import { listRole, type RoleItem } from '@/api/system/role'
-import { listDept, type DeptItem } from '@/api/system/dept'
+import { listDept, type DeptSimpleItem } from '@/api/system/dept'
 import { listPost, type PostItem } from '@/api/system/post'
 import { required, mobile, email } from '@/utils/validate'
 import { usePermissionStore } from '@/stores/permission'
-
-const query = reactive<UserQuery>({ pageNum: 1, pageSize: 10, username: '', nickname: '', phone: '', status: undefined, deptId: undefined })
-const list = ref<UserItem[]>([])
-const total = ref(0)
-const loading = ref(false)
-
-const roleList = ref<RoleItem[]>([])
-const deptList = ref<DeptItem[]>([])
-const postList = ref<PostItem[]>([])
-
-const dialogVisible = ref(false)
-const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<UserSave>({ id: undefined, username: '', nickname: '', password: '', phone: '', email: '', status: 1, deptId: undefined, postId: undefined, roleIds: [] })
-const formRef = ref()
+import { useCrud } from '@/composables/useCrud'
 
 const permStore = usePermissionStore()
 /** 无对应权限时不发起详情/授权请求，避免只有「编辑」权限的角色被 403 打断保存流程 */
 const canViewUserDetail = computed(() => permStore.hasPermission('system:user:detail'))
 const canAssignRole = computed(() => permStore.hasPermission('system:user:assign-role'))
+
+const roleList = ref<RoleItem[]>([])
+const deptList = ref<DeptSimpleItem[]>([])
+const postList = ref<PostItem[]>([])
+
+const {
+  query, list, total, loading,
+  dialogVisible, dialogMode, form, formRef,
+  fetch, onSearch, onReset, onAdd, onEdit, onSave, onDelete
+} = useCrud<UserItem, UserQuery, UserSave>({
+  page: (q) => pageUser(q),
+  save: (data) => saveUser(data),
+  remove: (id) => deleteUser(Number(id)),
+  defaultQuery: () => ({ pageNum: 1, pageSize: 10, username: '', nickname: '', phone: '', status: undefined, deptId: undefined }),
+  defaultForm: () => ({ id: undefined, username: '', nickname: '', password: '', phone: '', email: '', status: 1, deptId: undefined, postId: undefined, roleIds: [] }),
+  toForm: async (row) => {
+    // 列表数据不含已分配角色，需取详情回显；无详情权限时退化为使用列表行数据
+    const detail = canViewUserDetail.value ? await getUser(row.id) : row
+    return {
+      id: detail.id,
+      username: detail.username,
+      nickname: detail.nickname,
+      phone: detail.phone || '',
+      email: detail.email || '',
+      status: detail.status,
+      deptId: detail.deptId,
+      postId: detail.postId,
+      roleIds: detail.roleIds ?? []
+    }
+  },
+  afterSave: async (saved, form) => {
+    // 角色不在用户主表上，保存后单独调用分配角色接口（新增接口返回新用户 ID）
+    const userId = typeof saved === 'number' ? saved : form.id
+    if (userId && canAssignRole.value) await assignRole(userId, form.roleIds ?? [])
+  },
+  confirmDelete: (row) => `确认删除用户「${row.nickname}」？`
+})
 
 const formRules = computed(() => ({
   username: [required('请输入用户名')],
@@ -39,32 +63,6 @@ const formRules = computed(() => ({
   email: [email()]
 }))
 
-async function fetch() {
-  loading.value = true
-  try {
-    const res = await pageUser(query)
-    list.value = res.list
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
-}
-
-function onSearch() {
-  query.pageNum = 1
-  fetch()
-}
-
-function onReset() {
-  query.username = ''
-  query.nickname = ''
-  query.phone = ''
-  query.status = undefined
-  query.deptId = undefined
-  query.pageNum = 1
-  fetch()
-}
-
 async function loadOptions() {
   // 逐个容错加载：某个下拉因权限不足失败，不应连带其余下拉一起加载不出来
   await Promise.all([
@@ -76,52 +74,13 @@ async function loadOptions() {
   ])
 }
 
-function onAdd() {
-  dialogMode.value = 'add'
-  form.value = { id: undefined, username: '', nickname: '', password: '', phone: '', email: '', status: 1, deptId: undefined, postId: undefined, roleIds: [] }
-  dialogVisible.value = true
-}
-
-async function onEdit(row: UserItem) {
-  dialogMode.value = 'edit'
-  // 列表数据不含已分配角色，需取详情回显；无详情权限时退化为使用列表行数据
-  const detail = canViewUserDetail.value ? await getUser(row.id) : row
-  form.value = {
-    id: detail.id,
-    username: detail.username,
-    nickname: detail.nickname,
-    phone: detail.phone || '',
-    email: detail.email || '',
-    status: detail.status,
-    deptId: detail.deptId,
-    postId: detail.postId,
-    roleIds: detail.roleIds ?? []
-  }
-  dialogVisible.value = true
-}
-
-async function onSave() {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
-  const res = await saveUser(form.value)
-  // 角色不在用户主表上，保存后单独调用分配角色接口（新增接口返回新用户 ID）
-  const userId = typeof res === 'number' ? res : form.value.id
-  if (userId && canAssignRole.value) await assignRole(userId, form.value.roleIds ?? [])
-  ElMessage.success('保存成功')
-  dialogVisible.value = false
-  fetch()
-}
-
-async function onDelete(row: UserItem) {
-  await ElMessageBox.confirm(`确认删除用户「${row.nickname}」？`, '提示', { type: 'warning' })
-  await deleteUser(row.id)
-  ElMessage.success('删除成功')
-  fetch()
-}
-
 async function onResetPwd(row: UserItem) {
-  const { value } = await ElMessageBox.prompt('请输入新密码（8-32 位）', '重置密码', { inputPattern: /^\S{8,32}$/, inputErrorMessage: '密码长度必须在8-32位之间' })
-  await resetUserPassword(row.id, value)
+  const result = await ElMessageBox.prompt('请输入新密码（8-32 位）', '重置密码', {
+    inputPattern: /^\S{8,32}$/,
+    inputErrorMessage: '密码长度必须在8-32位之间'
+  }).catch(() => null)
+  if (!result) return
+  await resetUserPassword(row.id, result.value)
   ElMessage.success('密码已重置')
 }
 
@@ -159,10 +118,7 @@ function getFileName(resp: any): string | null {
   return name ? decodeURIComponent(name[1]) : null
 }
 
-onMounted(() => {
-  loadOptions()
-  fetch()
-})
+onMounted(loadOptions)
 </script>
 
 <template>

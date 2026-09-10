@@ -62,16 +62,8 @@ export function assignRole(userId: number, roleIds: number[]) {
   })
 }
 
-export function saveUserStatus(data: UserSave) {
-  return request.put<void>({ url: '/admin-api/system/user/update', data })
-}
-
 export function deleteUser(id: number) {
   return request.delete<void>({ url: '/admin-api/system/user/delete', data: [id] })
-}
-
-export function deleteUsers(ids: number[]) {
-  return request.delete<void>({ url: '/admin-api/system/user/delete', data: ids })
 }
 
 export function resetUserPassword(id: number, password: string) {

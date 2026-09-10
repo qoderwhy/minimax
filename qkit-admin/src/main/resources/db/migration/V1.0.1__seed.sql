@@ -1,6 +1,16 @@
 -- ==========================================================
 -- V1.0.1__seed.sql  全部种子数据（菜单/角色/用户/部门/岗位/字典/参数）
 -- ==========================================================
+-- 注意：本文件属于「已执行过的迁移」时不要直接修改其内容。
+-- Flyway 会校验已执行迁移的 checksum，已部署的库会因此启动失败。
+-- 若需修正已部署库的数据，请执行 flyway repair（或修正 flyway_schema_history 中的 checksum），
+-- 并手工执行等价的数据修正 SQL，例如：
+--   UPDATE sys_menu SET visible = 1 WHERE id BETWEEN 180 AND 185;
+--   UPDATE sys_config SET config_value = 'Qkit@123' WHERE config_key = 'sys.user.initPassword';
+--   INSERT INTO sys_config (config_name, config_key, config_value, config_type, remark)
+--     VALUES ('同一IP失败锁定次数', 'sys.login.ipRetryLimit', '20', 'N', '同一来源 IP 连续登录失败锁定次数');
+-- 全新环境直接重建数据库即可。
+-- ==========================================================
 
 -- ---------- 一级目录 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, icon, sort, visible, status, create_by, create_time) VALUES
@@ -84,12 +94,12 @@ INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, so
 
 -- ---------- 系统管理 → 参数设置 ----------
 INSERT INTO sys_menu (id, name, type, parent_id, path, component, perm, icon, sort, visible, status, create_by, create_time) VALUES
-(180, '参数设置', 'C', 1, '/system/config', 'system/config/index', 'system:config:page', 'Operation', 9, 0, 1, 1, NOW()),
-(181, '配置查询', 'F', 180, NULL, NULL, 'system:config:page',   NULL, 1, 0, 1, 1, NOW()),
-(182, '配置列表', 'F', 180, NULL, NULL, 'system:config:list',   NULL, 2, 0, 1, 1, NOW()),
-(183, '新增配置', 'F', 180, NULL, NULL, 'system:config:create', NULL, 3, 0, 1, 1, NOW()),
-(184, '编辑配置', 'F', 180, NULL, NULL, 'system:config:update', NULL, 4, 0, 1, 1, NOW()),
-(185, '删除配置', 'F', 180, NULL, NULL, 'system:config:delete', NULL, 5, 0, 1, 1, NOW());
+(180, '参数设置', 'C', 1, '/system/config', 'system/config/index', 'system:config:page', 'Operation', 9, 1, 1, 1, NOW()),
+(181, '配置查询', 'F', 180, NULL, NULL, 'system:config:page',   NULL, 1, 1, 1, 1, NOW()),
+(182, '配置列表', 'F', 180, NULL, NULL, 'system:config:list',   NULL, 2, 1, 1, 1, NOW()),
+(183, '新增配置', 'F', 180, NULL, NULL, 'system:config:create', NULL, 3, 1, 1, 1, NOW()),
+(184, '编辑配置', 'F', 180, NULL, NULL, 'system:config:update', NULL, 4, 1, 1, 1, NOW()),
+(185, '删除配置', 'F', 180, NULL, NULL, 'system:config:delete', NULL, 5, 1, 1, 1, NOW());
 
 -- ---------- 角色 ----------
 INSERT INTO sys_role (id, name, code, data_scope, sort, status, create_by, create_time) VALUES
@@ -116,6 +126,7 @@ INSERT INTO sys_post (id, code, name, dept_id, sort, status, create_by, create_t
 (3, 'product', '产品经理',   3, 1, 1, 1, NOW());
 
 -- ---------- admin 用户 ----------
+-- 默认口令 admin123（BCrypt cost=10），首次登录后请立即修改
 INSERT INTO sys_user (id, username, password, nickname, real_name, status, dept_id, post_id, create_by, create_time) VALUES
 (1, 'admin', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '超管', '超级管理员', 1, 1, 1, 1, NOW());
 
@@ -152,8 +163,9 @@ INSERT INTO sys_dict_item (dict_type, label, value, sort, status, create_by, cre
 
 -- ---------- 系统参数配置 ----------
 INSERT INTO sys_config (id, config_name, config_key, config_value, config_type, remark, create_by, create_time) VALUES
-(1, '用户初始密码',       'sys.user.initPassword',    '123456',     'Y', '新用户默认初始密码',                1, NOW()),
+(1, '用户初始密码',       'sys.user.initPassword',    'Qkit@123',   'Y', '新用户默认初始密码（需满足 8-32 位）', 1, NOW()),
 (2, '登录验证码开关',     'sys.login.captchaEnabled', 'true',       'Y', '登录时是否显示图形验证码',          1, NOW()),
 (3, '登录失败锁定次数',   'sys.login.retryLimit',     '5',          'N', '同一用户名密码连续输错锁定次数',    1, NOW()),
 (4, '上传文件大小上限',   'sys.upload.maxSize',       '10',         'N', '上传文件大小上限(MB)',              1, NOW()),
-(5, '系统首页皮肤',       'sys.index.skinName',       'skin-blue',  'N', '系统首页皮肤',                      1, NOW());
+(5, '系统首页皮肤',       'sys.index.skinName',       'skin-blue',  'N', '系统首页皮肤',                      1, NOW()),
+(6, '同一IP失败锁定次数', 'sys.login.ipRetryLimit',   '20',         'N', '同一来源 IP 连续登录失败锁定次数',  1, NOW());

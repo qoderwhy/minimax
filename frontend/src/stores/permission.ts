@@ -25,11 +25,14 @@ export const usePermissionStore = defineStore('permission', () => {
   /** 超级管理员通配权限 */
   const ALL_PERMISSION = '*:*:*'
 
-  /** 判断是否拥有某权限点（支持超级管理员通配 *:*:*），数组语义为全部满足 */
+  /**
+   * 判断是否拥有某权限点（支持超级管理员通配 *:*:*）。
+   * 数组语义为「任一满足」，避免传入多个权限时按钮被整体移除。
+   */
   function hasPermission(perm: string | string[]): boolean {
     if (buttons.value.includes(ALL_PERMISSION)) return true
     const perms = Array.isArray(perm) ? perm : [perm]
-    return perms.every((p) => buttons.value.includes(p))
+    return perms.some((p) => buttons.value.includes(p))
   }
 
   function reset() {

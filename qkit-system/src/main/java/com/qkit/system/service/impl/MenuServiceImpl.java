@@ -22,8 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,13 +40,30 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional(readOnly = true)
     public R<List<MenuVO>> tree(String name) {
-        LambdaQueryWrapper<Menu> wrapper = new LambdaQueryWrapper<Menu>()
-                .like(name != null && !name.isBlank(), Menu::getName, name)
-                .orderByAsc(Menu::getSort);
-        List<Menu> all = menuMapper.selectList(wrapper);
-        Map<Long, List<Menu>> byParent = all.stream()
+        List<Menu> all = menuMapper.selectList(new LambdaQueryWrapper<Menu>().orderByAsc(Menu::getSort));
+        List<Menu> nodes = (name == null || name.isBlank()) ? all : withAncestors(all, name);
+        Map<Long, List<Menu>> byParent = nodes.stream()
                 .collect(Collectors.groupingBy(m -> m.getParentId() == null ? 0L : m.getParentId()));
         return R.ok(buildTree(0L, byParent));
+    }
+
+    /**
+     * 关键字过滤：保留命中节点及其全部祖先。
+     * 不在 SQL 上直接 like，避免父节点未命中时整棵子树从结果中消失。
+     */
+    private List<Menu> withAncestors(List<Menu> all, String keyword) {
+        Map<Long, Menu> byId = all.stream().collect(Collectors.toMap(Menu::getId, m -> m, (a, b) -> a));
+        Set<Long> keep = new HashSet<>();
+        for (Menu menu : all) {
+            if (menu.getName() == null || !menu.getName().contains(keyword)) continue;
+            Long cur = menu.getId();
+            while (cur != null && keep.add(cur)) {
+                Menu node = byId.get(cur);
+                if (node == null) break;
+                cur = (node.getParentId() == null || node.getParentId() == 0L) ? null : node.getParentId();
+            }
+        }
+        return all.stream().filter(m -> keep.contains(m.getId())).toList();
     }
 
     @Override
@@ -60,7 +79,7 @@ public class MenuServiceImpl implements MenuService {
                 .orderByAsc(Menu::getSort));
         List<Menu> menus = (perms.contains("*:*:*") || roleCodes.contains("admin"))
                 ? all
-                : visibleMenus(all, new java.util.HashSet<>(perms));
+                : visibleMenus(all, new HashSet<>(perms));
         Map<Long, List<Menu>> byParent = menus.stream()
                 .collect(Collectors.groupingBy(m -> m.getParentId() == null ? 0L : m.getParentId()));
         return R.ok(buildRoute(0L, byParent));
@@ -70,10 +89,10 @@ public class MenuServiceImpl implements MenuService {
      * 普通用户可见菜单：保留有权限的菜单(C)，并沿父链补齐所有祖先目录(M)，
      * 避免目录无 perm 时整棵子树对普通用户不可见。
      */
-    private List<Menu> visibleMenus(List<Menu> all, java.util.Set<String> perms) {
-        java.util.Map<Long, Menu> byId = all.stream()
+    private List<Menu> visibleMenus(List<Menu> all, Set<String> perms) {
+        Map<Long, Menu> byId = all.stream()
                 .collect(Collectors.toMap(Menu::getId, m -> m, (a, b) -> a));
-        java.util.Set<Long> visibleIds = new java.util.HashSet<>();
+        Set<Long> visibleIds = new HashSet<>();
         for (Menu m : all) {
             if (!MenuTypeEnum.MENU.getCode().equals(m.getType())) continue;
             if (m.getPerm() == null || !perms.contains(m.getPerm())) continue;
@@ -105,6 +124,7 @@ public class MenuServiceImpl implements MenuService {
     public R<Boolean> update(MenuSaveDTO dto) {
         Menu exist = menuMapper.selectById(dto.id());
         if (exist == null) throw new BusinessException(ErrorCode.NOT_FOUND);
+        validateParent(dto.id(), dto.parentId());
         Menu menu = menuConvert.toEntity(dto);
         menuMapper.updateById(menu);
         return R.ok(true);
@@ -122,6 +142,22 @@ public class MenuServiceImpl implements MenuService {
         return R.ok(true);
     }
 
+    /**
+     * 校验上级节点合法：沿目标父节点向上回溯，若命中自身说明目标父节点位于自己的子树中（含自环），
+     * 会让该节点从根不可达。
+     */
+    private void validateParent(Long id, Long parentId) {
+        if (parentId == null || parentId == 0L) return;
+        Map<Long, Long> parentOf = menuMapper.selectList(null).stream()
+                .collect(Collectors.toMap(Menu::getId,
+                        m -> m.getParentId() == null ? 0L : m.getParentId(), (a, b) -> a));
+        Long cur = parentId;
+        while (cur != null && cur != 0L) {
+            if (cur.equals(id)) throw new BusinessException(ErrorCode.MENU_PARENT_INVALID);
+            cur = parentOf.get(cur);
+        }
+    }
+
     private List<MenuVO> buildTree(Long parentId, Map<Long, List<Menu>> byParent) {
         return byParent.getOrDefault(parentId, List.of()).stream()
                 .map(m -> menuConvert.toVO(m, buildTree(m.getId(), byParent)))
@@ -135,20 +171,10 @@ public class MenuServiceImpl implements MenuService {
             List<RouteVO> sub = buildRoute(m.getId(), byParent);
             String component = m.getType().equals(MenuTypeEnum.DIR.getCode()) ? "Layout" : m.getComponent();
             RouteMetaVO meta = new RouteMetaVO(m.getName(), m.getIcon(), m.getVisible() != 1, Integer.valueOf(1).equals(m.getKeepAlive()), m.getPerm());
-            RouteVO vo = new RouteVO(m.getId(), capitalize(m.getPath()), m.getPath(), component, null, meta, sub);
+            // 路由名固定为 menu-{id}：由路径拼凑的名字可能重复，会导致登出时按名移除路由误删
+            RouteVO vo = new RouteVO(m.getId(), "menu-" + m.getId(), m.getPath(), component, null, meta, sub);
             result.add(vo);
         }
         return result;
-    }
-
-    private String capitalize(String s) {
-        if (s == null || s.isEmpty()) return s;
-        String[] parts = s.split("/");
-        StringBuilder sb = new StringBuilder();
-        for (String p : parts) {
-            if (p.isEmpty()) continue;
-            sb.append(Character.toUpperCase(p.charAt(0))).append(p.substring(1));
-        }
-        return sb.toString();
     }
 }

@@ -24,6 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Validated
@@ -48,7 +51,7 @@ public class PostServiceImpl implements PostService {
                 .eq(query.status() != null, Post::getStatus, query.status())
                 .orderByAsc(Post::getSort);
         Page<Post> result = postMapper.selectPage(page, wrapper);
-        List<PostVO> voList = result.getRecords().stream().map(this::toVOWithDept).toList();
+        List<PostVO> voList = toVOList(result.getRecords());
         return R.ok(voList, result.getTotal(), query.pageNum(), query.pageSize());
     }
 
@@ -57,7 +60,7 @@ public class PostServiceImpl implements PostService {
     public R<List<PostVO>> list() {
         List<Post> posts = postMapper.selectList(new LambdaQueryWrapper<Post>()
                 .eq(Post::getStatus, 1).orderByAsc(Post::getSort));
-        return R.ok(posts.stream().map(this::toVOWithDept).toList());
+        return R.ok(toVOList(posts));
     }
 
     @Override
@@ -90,13 +93,22 @@ public class PostServiceImpl implements PostService {
         return R.ok(true);
     }
 
-    private PostVO toVOWithDept(Post post) {
+    /** 批量填充部门名称，避免逐行 selectById 产生 N+1 查询 */
+    private List<PostVO> toVOList(List<Post> posts) {
+        Set<Long> deptIds = posts.stream()
+                .map(Post::getDeptId)
+                .filter(id -> id != null && id > 0)
+                .collect(Collectors.toSet());
+        Map<Long, String> deptNameMap = deptIds.isEmpty() ? Map.of()
+                : deptMapper.selectBatchIds(deptIds).stream()
+                        .collect(Collectors.toMap(Dept::getId, Dept::getName, (a, b) -> a));
+        return posts.stream().map(post -> toVOWithDept(post, deptNameMap)).toList();
+    }
+
+    private PostVO toVOWithDept(Post post, Map<Long, String> deptNameMap) {
         PostVO vo = postConvert.toVO(post);
-        String deptName = null;
-        if (post.getDeptId() != null && post.getDeptId() > 0) {
-            Dept dept = deptMapper.selectById(post.getDeptId());
-            if (dept != null) deptName = dept.getName();
-        }
+        String deptName = (post.getDeptId() != null && post.getDeptId() > 0)
+                ? deptNameMap.get(post.getDeptId()) : null;
         return new PostVO(vo.id(), vo.code(), vo.name(), vo.deptId(), deptName,
                 vo.sort(), vo.status(), vo.remark(), vo.createTime());
     }

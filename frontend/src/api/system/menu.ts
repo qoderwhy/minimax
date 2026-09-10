@@ -35,10 +35,6 @@ export function treeMenu() {
   return request.get<MenuItem[]>({ url: '/admin-api/system/menu/tree' })
 }
 
-export function listMenu() {
-  return request.get<MenuItem[]>({ url: '/admin-api/system/menu/tree' })
-}
-
 export function saveMenu(data: MenuSave) {
   return data.id
     ? request.put<void>({ url: '/admin-api/system/menu/update', data })

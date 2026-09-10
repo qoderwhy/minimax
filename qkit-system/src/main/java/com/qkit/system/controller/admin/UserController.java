@@ -47,7 +47,8 @@ public class UserController {
     @GetMapping("/detail/{id}")
     @SaCheckPermission("system:user:detail")
     public R<UserVO> detail(@PathVariable Long id) {
-        return userService.detail(id);
+        // 走受数据权限约束的查询，避免越权读取其他数据范围内的用户
+        return userService.detailInScope(id);
     }
 
     @Operation(summary = "新增用户")

@@ -4,11 +4,15 @@ import com.qkit.system.domain.dto.DictItemSaveDTO;
 import com.qkit.system.domain.entity.DictItem;
 import com.qkit.system.domain.vo.DictItemVO;
 import org.mapstruct.Mapper;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring",
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
+        unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface DictItemConvert {
 
     DictItemConvert INSTANCE = Mappers.getMapper(DictItemConvert.class);

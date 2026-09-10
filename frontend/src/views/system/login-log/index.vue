@@ -1,44 +1,45 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { ref } from 'vue'
 import { pageLoginLog, deleteLoginLog, cleanLoginLog } from '@/api/system/loginLog'
+import { usePagination } from '@/composables/usePagination'
 
-const query = reactive({ pageNum: 1, pageSize: 10, username: '', status: undefined as number | undefined })
-const list = ref<any[]>([])
-const total = ref(0)
-const loading = ref(false)
-
-async function fetch() {
-  loading.value = true
-  try {
-    const res = await pageLoginLog(query)
-    list.value = res.list
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
+type LoginLogQuery = {
+  pageNum: number
+  pageSize: number
+  username: string
+  status?: number
 }
 
-function onSearch() {
-  query.pageNum = 1
-  fetch()
-}
+/** 时间范围，提交时拆分为 beginTime / endTime */
+const dateRange = ref<any>(null)
+
+const { query, list, total, loading, fetch, onSearch } = usePagination<any, LoginLogQuery>({
+  page: (q) => pageLoginLog({ ...q, beginTime: dateRange.value?.[0], endTime: dateRange.value?.[1] }),
+  defaultQuery: () => ({ pageNum: 1, pageSize: 10, username: '', status: undefined })
+})
 
 async function onDelete(row: any) {
-  await ElMessageBox.confirm('确认删除该日志？', '提示', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm('确认删除该日志？', '提示', { type: 'warning' })
+  } catch {
+    return
+  }
   await deleteLoginLog(row.id)
   ElMessage.success('删除成功')
   fetch()
 }
 
 async function onClean() {
-  await ElMessageBox.confirm('确认清空全部登录日志？此操作不可恢复！', '提示', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm('确认清空全部登录日志？此操作不可恢复！', '提示', { type: 'warning' })
+  } catch {
+    return
+  }
   await cleanLoginLog()
   ElMessage.success('已清空')
   fetch()
 }
-
-onMounted(fetch)
 </script>
 
 <template>
@@ -51,6 +52,17 @@ onMounted(fetch)
             <el-option label="成功" :value="1" />
             <el-option label="失败" :value="0" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="时间">
+          <el-date-picker
+            v-model="dateRange"
+            type="datetimerange"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            range-separator="至"
+            start-placeholder="开始时间"
+            end-placeholder="结束时间"
+            style="width: 360px"
+          />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="onSearch">查询</el-button>

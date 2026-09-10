@@ -1,82 +1,64 @@
 <script setup lang="ts">
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { pageRole, saveRole, deleteRole, getRoleDeptIds, getRoleMenuIds, assignMenu, type RoleItem, type RoleSave, type RoleQuery } from '@/api/system/role'
 import { listDept } from '@/api/system/dept'
 import { treeMenu, type MenuItem } from '@/api/system/menu'
 import { usePermissionStore } from '@/stores/permission'
-
-const query = reactive<RoleQuery>({ pageNum: 1, pageSize: 10, name: '', code: '', status: undefined })
-const list = ref<RoleItem[]>([])
-const total = ref(0)
-const loading = ref(false)
-const deptTree = ref<any[]>([])
-const deptTreeRef = ref()
-const menuTree = ref<MenuItem[]>([])
-const menuTreeRef = ref()
-
-const dialogVisible = ref(false)
-const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<RoleSave>({ id: undefined, name: '', code: '', status: 1, dataScope: 2, sort: 0, remark: '', deptIds: [] })
-const formRef = ref()
+import { useCrud } from '@/composables/useCrud'
 
 const permStore = usePermissionStore()
 /** 无授权权限时不请求/不提交对应授权数据，避免只有「编辑角色」权限的角色被 403 打断 */
 const canAssignMenu = computed(() => permStore.hasPermission('system:role:assign-menu'))
 const canAssignDept = computed(() => permStore.hasPermission('system:role:assign-dept'))
 
-async function fetch() {
-  loading.value = true
-  try {
-    const res = await pageRole(query)
-    list.value = res.list
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
-}
+const deptTree = ref<any[]>([])
+const deptTreeRef = ref()
+const menuTree = ref<MenuItem[]>([])
+const menuTreeRef = ref()
 
-function onSearch() {
-  query.pageNum = 1
-  fetch()
-}
-
-function onReset() {
-  query.name = ''
-  query.code = ''
-  query.status = undefined
-  query.pageNum = 1
-  fetch()
-}
-
-function onAdd() {
-  dialogMode.value = 'add'
-  form.value = { id: undefined, name: '', code: '', status: 1, dataScope: 2, sort: 0, remark: '', deptIds: [] }
-  dialogVisible.value = true
-  nextTick(() => {
-    menuTreeRef.value?.setCheckedKeys([])
-    deptTreeRef.value?.setCheckedKeys([])
-  })
-}
-
-async function onEdit(row: RoleItem) {
-  dialogMode.value = 'edit'
-  form.value = {
+const {
+  query, list, total, loading,
+  dialogVisible, dialogMode, form, formRef,
+  fetch, onSearch, onReset, onAdd, onEdit, onSave, onDelete
+} = useCrud<RoleItem, RoleQuery, RoleSave>({
+  page: (q) => pageRole(q),
+  save: (data) => saveRole(data),
+  remove: (id) => deleteRole(Number(id)),
+  defaultQuery: () => ({ pageNum: 1, pageSize: 10, name: '', code: '', status: undefined }),
+  defaultForm: () => ({ id: undefined, name: '', code: '', status: 1, dataScope: 2, sort: 0, remark: '', deptIds: [] }),
+  toForm: (row) => ({
     id: row.id, name: row.name, code: row.code, status: row.status,
     dataScope: row.dataScope, sort: row.sort, remark: row.remark || '',
     deptIds: []
-  }
-  dialogVisible.value = true
-  // 菜单与自定义部门都不在角色主表上，需单独查询回显
-  const [menuIds, deptIds] = await Promise.all([
-    canAssignMenu.value ? getRoleMenuIds(row.id) : Promise.resolve<number[]>([]),
-    row.dataScope === 5 && canAssignDept.value ? getRoleDeptIds(row.id) : Promise.resolve<number[]>([])
-  ])
-  form.value.deptIds = deptIds
-  await nextTick()
-  menuTreeRef.value?.setCheckedKeys(menuIds)
-  deptTreeRef.value?.setCheckedKeys(deptIds)
-}
+  }),
+  afterAdd: () => {
+    menuTreeRef.value?.setCheckedKeys([])
+    deptTreeRef.value?.setCheckedKeys([])
+  },
+  afterEdit: async (row, form) => {
+    // 菜单与自定义部门都不在角色主表上，需单独查询回显
+    const [menuIds, deptIds] = await Promise.all([
+      canAssignMenu.value ? getRoleMenuIds(row.id) : Promise.resolve<number[]>([]),
+      row.dataScope === 5 && canAssignDept.value ? getRoleDeptIds(row.id) : Promise.resolve<number[]>([])
+    ])
+    form.deptIds = deptIds
+    menuTreeRef.value?.setCheckedKeys(menuIds)
+    deptTreeRef.value?.setCheckedKeys(deptIds)
+  },
+  beforeSave: (form) => {
+    form.deptIds = form.dataScope === 5 ? ((deptTreeRef.value?.getCheckedKeys() ?? []) as number[]) : []
+  },
+  afterSave: async (saved, form) => {
+    const roleId = typeof saved === 'number' ? saved : form.id
+    // 菜单不在角色主表上，保存后单独提交；半选节点（目录）也要落库，否则父级菜单不会显示
+    if (roleId && canAssignMenu.value) {
+      const checked = (menuTreeRef.value?.getCheckedKeys() ?? []) as number[]
+      const halfChecked = (menuTreeRef.value?.getHalfCheckedKeys() ?? []) as number[]
+      await assignMenu(roleId, [...checked, ...halfChecked])
+    }
+  },
+  confirmDelete: (row) => `确认删除角色「${row.name}」？`
+})
 
 async function loadDeptTree() {
   try {
@@ -105,36 +87,7 @@ async function loadMenuTree() {
   }
 }
 
-async function onSave() {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
-  if (form.value.dataScope === 5) {
-    form.value.deptIds = (deptTreeRef.value?.getCheckedKeys() ?? []) as number[]
-  } else {
-    form.value.deptIds = []
-  }
-  const res = await saveRole(form.value)
-  const roleId = typeof res === 'number' ? res : form.value.id
-  // 菜单不在角色主表上，保存后单独提交；半选节点（目录）也要落库，否则父级菜单不会显示
-  if (roleId && canAssignMenu.value) {
-    const checked = (menuTreeRef.value?.getCheckedKeys() ?? []) as number[]
-    const halfChecked = (menuTreeRef.value?.getHalfCheckedKeys() ?? []) as number[]
-    await assignMenu(roleId, [...checked, ...halfChecked])
-  }
-  ElMessage.success('保存成功')
-  dialogVisible.value = false
-  fetch()
-}
-
-async function onDelete(row: RoleItem) {
-  await ElMessageBox.confirm(`确认删除角色「${row.name}」？`, '提示', { type: 'warning' })
-  await deleteRole(row.id)
-  ElMessage.success('删除成功')
-  fetch()
-}
-
 onMounted(() => {
-  fetch()
   // 授权树按权限加载，避免无权限角色进入页面即请求 403
   if (canAssignDept.value) loadDeptTree()
   if (canAssignMenu.value) loadMenuTree()

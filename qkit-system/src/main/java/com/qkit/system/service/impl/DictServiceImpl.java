@@ -12,6 +12,7 @@ import com.qkit.common.exception.BusinessException;
 import com.qkit.common.transaction.TransactionUtils;
 import com.qkit.system.convert.DictConvert;
 import com.qkit.system.convert.DictItemConvert;
+import com.qkit.system.domain.dto.DictItemQueryDTO;
 import com.qkit.system.domain.dto.DictItemSaveDTO;
 import com.qkit.system.domain.dto.DictQueryDTO;
 import com.qkit.system.domain.dto.DictSaveDTO;
@@ -63,6 +64,23 @@ public class DictServiceImpl implements DictService, CommandLineRunner {
     @Override
     public R<List<DictItemVO>> listItems(String dictType) {
         return R.ok(getItemsByType(dictType));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public R<List<DictItemVO>> pageItems(DictItemQueryDTO query) {
+        Page<DictItem> page = Page.of(
+                query.pageNum() == null ? 1 : query.pageNum(),
+                query.pageSize() == null ? 10 : query.pageSize());
+        LambdaQueryWrapper<DictItem> wrapper = new LambdaQueryWrapper<DictItem>()
+                .eq(StrUtil.isNotBlank(query.dictType()), DictItem::getDictType, query.dictType())
+                .like(StrUtil.isNotBlank(query.label()), DictItem::getLabel, query.label())
+                .eq(query.status() != null, DictItem::getStatus, query.status())
+                .orderByAsc(DictItem::getSort)
+                .orderByAsc(DictItem::getId);
+        Page<DictItem> result = dictItemMapper.selectPage(page, wrapper);
+        return R.ok(dictItemConvert.toVOList(result.getRecords()),
+                result.getTotal(), query.pageNum(), query.pageSize());
     }
 
     @Override

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, ref } from 'vue'
-import { treeDept, saveDept, deleteDept, type DeptItem, type DeptSave } from '@/api/system/dept'
+import { treeDept, saveDept, deleteDept, type DeptTreeItem, type DeptSave } from '@/api/system/dept'
 
-const list = ref<DeptItem[]>([])
+const list = ref<DeptTreeItem[]>([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit' | 'addChild'>('add')
@@ -25,13 +25,13 @@ function onAdd(root = true) {
   dialogVisible.value = true
 }
 
-function onAddChild(parent: DeptItem) {
+function onAddChild(parent: DeptTreeItem) {
   dialogMode.value = 'addChild'
   form.value = { id: undefined, name: '', parentId: parent.id, sort: 0, leader: '', phone: '', email: '', status: 1 }
   dialogVisible.value = true
 }
 
-function onEdit(row: DeptItem) {
+function onEdit(row: DeptTreeItem) {
   dialogMode.value = 'edit'
   form.value = {
     id: row.id,
@@ -55,7 +55,7 @@ async function onSave() {
   fetch()
 }
 
-async function onDelete(row: DeptItem) {
+async function onDelete(row: DeptTreeItem) {
   await ElMessageBox.confirm(`确认删除部门「${row.label}」？`, '提示', { type: 'warning' })
   await deleteDept(row.id)
   ElMessage.success('删除成功')
@@ -84,9 +84,9 @@ onMounted(fetch)
         </el-table-column>
         <el-table-column label="操作" width="260">
           <template #default="{ row }">
-            <el-button v-permission="'system:dept:create'" type="primary" link @click="onAddChild(row as DeptItem)">新增下级</el-button>
-            <el-button v-permission="'system:dept:update'" type="primary" link @click="onEdit(row as DeptItem)">编辑</el-button>
-            <el-button v-permission="'system:dept:delete'" type="danger" link @click="onDelete(row as DeptItem)">删除</el-button>
+            <el-button v-permission="'system:dept:create'" type="primary" link @click="onAddChild(row as DeptTreeItem)">新增下级</el-button>
+            <el-button v-permission="'system:dept:update'" type="primary" link @click="onEdit(row as DeptTreeItem)">编辑</el-button>
+            <el-button v-permission="'system:dept:delete'" type="danger" link @click="onDelete(row as DeptTreeItem)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

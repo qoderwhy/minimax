@@ -1,82 +1,79 @@
 <script setup lang="ts">
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { ref } from 'vue'
 import { deleteDictType, deleteDictItem, pageDictItem, pageDictType, saveDictItem, saveDictType, type DictItem, type DictItemSave, type DictType, type DictTypeSave } from '@/api/system/dict'
+import { useCrud } from '@/composables/useCrud'
 
-// ---------- 字典类型（左栏） ----------
-const typeQuery = reactive({ pageNum: 1, pageSize: 10, type: '', name: '', status: undefined as number | undefined })
-const typeList = ref<DictType[]>([])
-const typeTotal = ref(0)
-const typeLoading = ref(false)
-const typeDialogVisible = ref(false)
-const typeDialogMode = ref<'add' | 'edit'>('add')
-const typeForm = ref<DictTypeSave>({ id: undefined, type: '', name: '', status: 1, remark: '' })
-const typeFormRef = ref()
+type DictTypeQuery = {
+  pageNum: number
+  pageSize: number
+  type: string
+  name: string
+  status?: number
+}
 
-// ---------- 字典项（右栏） ----------
-const itemQuery = reactive({ pageNum: 1, pageSize: 10, label: '' })
-const itemList = ref<DictItem[]>([])
-const itemTotal = ref(0)
-const itemLoading = ref(false)
-const itemDialogVisible = ref(false)
-const itemDialogMode = ref<'add' | 'edit'>('add')
-const itemForm = ref<DictItemSave>({ id: undefined, dictType: '', label: '', value: '', sort: 0, status: 1, cssClass: 'primary', remark: '' })
-const itemFormRef = ref()
+type DictItemQuery = {
+  pageNum: number
+  pageSize: number
+  label: string
+}
 
 /** 当前选中的字典类型 */
 const selectedType = ref<DictType | null>(null)
 
-// ---------- 字典类型操作 ----------
-async function fetchTypes() {
-  typeLoading.value = true
-  try {
-    const res = await pageDictType(typeQuery)
-    typeList.value = res.list
-    typeTotal.value = res.total
-  } finally {
-    typeLoading.value = false
-  }
-}
+// ---------- 字典类型（左栏） ----------
+const {
+  query: typeQuery, list: typeList, total: typeTotal, loading: typeLoading,
+  dialogVisible: typeDialogVisible, dialogMode: typeDialogMode, form: typeForm, formRef: typeFormRef,
+  fetch: fetchTypes, onSearch: searchTypes, onAdd: onTypeAdd, onEdit: onTypeEdit,
+  onSave: onTypeSave, onDelete: removeType
+} = useCrud<DictType, DictTypeQuery, DictTypeSave>({
+  page: (q) => pageDictType(q),
+  save: (data) => saveDictType(data),
+  remove: (id) => deleteDictType(Number(id)),
+  defaultQuery: () => ({ pageNum: 1, pageSize: 10, type: '', name: '', status: undefined }),
+  defaultForm: () => ({ id: undefined, type: '', name: '', status: 1, remark: '' }),
+  confirmDelete: (row) => `确认删除字典「${row.name}」？`
+})
 
+// ---------- 字典项（右栏） ----------
+const {
+  query: itemQuery, list: itemList, total: itemTotal, loading: itemLoading,
+  dialogVisible: itemDialogVisible, dialogMode: itemDialogMode, form: itemForm, formRef: itemFormRef,
+  fetch: fetchItems, onSearch: onItemSearch, onAdd: addItem, onEdit: onItemEdit,
+  onSave: onItemSave, onDelete: onItemDelete
+} = useCrud<DictItem, DictItemQuery, DictItemSave>({
+  // 字典项依赖左侧选中的字典类型；未选中时不发请求
+  page: (q) => selectedType.value
+    ? pageDictItem({ pageNum: q.pageNum, pageSize: q.pageSize, type: selectedType.value.type, label: q.label })
+    : Promise.resolve({ list: [], total: 0 }),
+  save: (data) => saveDictItem(data),
+  remove: (id) => deleteDictItem(Number(id)),
+  defaultQuery: () => ({ pageNum: 1, pageSize: 10, label: '' }),
+  defaultForm: () => ({ id: undefined, dictType: '', label: '', value: '', sort: 0, status: 1, cssClass: 'primary', remark: '' }),
+  afterAdd: (form) => {
+    form.dictType = selectedType.value?.type ?? ''
+  },
+  immediate: false,
+  confirmDelete: (row) => `确认删除字典项「${row.label}」？`
+})
+
+/** 左侧查询：同时清空右侧从表 */
 function onTypeSearch() {
-  typeQuery.pageNum = 1
   selectedType.value = null
   itemList.value = []
   itemTotal.value = 0
-  fetchTypes()
+  searchTypes()
 }
 
-function onTypeAdd() {
-  typeDialogMode.value = 'add'
-  typeForm.value = { id: undefined, type: '', name: '', status: 1, remark: '' }
-  typeDialogVisible.value = true
-}
-
-function onTypeEdit(row: DictType) {
-  typeDialogMode.value = 'edit'
-  typeForm.value = { ...row }
-  typeDialogVisible.value = true
-}
-
-async function onTypeSave() {
-  const valid = await typeFormRef.value?.validate().catch(() => false)
-  if (!valid) return
-  await saveDictType(typeForm.value)
-  ElMessage.success('保存成功')
-  typeDialogVisible.value = false
-  fetchTypes()
-}
-
+/** 左侧删除：若删除的是当前选中类型，同步清空右侧从表 */
 async function onTypeDelete(row: DictType) {
-  await ElMessageBox.confirm(`确认删除字典「${row.name}」？`, '提示', { type: 'warning' })
-  await deleteDictType(row.id)
-  ElMessage.success('删除成功')
+  await removeType(row)
   if (selectedType.value?.id === row.id) {
     selectedType.value = null
     itemList.value = []
     itemTotal.value = 0
   }
-  fetchTypes()
 }
 
 /** 切换选中的字典类型并加载其字典项 */
@@ -87,62 +84,14 @@ function onTypeSelect(row: DictType) {
   fetchItems()
 }
 
-// ---------- 字典项操作 ----------
-async function fetchItems() {
-  if (!selectedType.value) return
-  itemLoading.value = true
-  try {
-    const res = await pageDictItem({
-      pageNum: itemQuery.pageNum,
-      pageSize: itemQuery.pageSize,
-      type: selectedType.value.type,
-      label: itemQuery.label
-    })
-    itemList.value = res.list
-    itemTotal.value = res.total
-  } finally {
-    itemLoading.value = false
-  }
-}
-
-function onItemSearch() {
-  itemQuery.pageNum = 1
-  fetchItems()
-}
-
+/** 新增字典项前必须先选择字典类型 */
 function onItemAdd() {
   if (!selectedType.value) {
     ElMessage.warning('请先在左侧选择字典类型')
     return
   }
-  itemDialogMode.value = 'add'
-  itemForm.value = { id: undefined, dictType: selectedType.value.type, label: '', value: '', sort: 0, status: 1, cssClass: 'primary', remark: '' }
-  itemDialogVisible.value = true
+  addItem()
 }
-
-function onItemEdit(row: DictItem) {
-  itemDialogMode.value = 'edit'
-  itemForm.value = { ...row }
-  itemDialogVisible.value = true
-}
-
-async function onItemSave() {
-  const valid = await itemFormRef.value?.validate().catch(() => false)
-  if (!valid) return
-  await saveDictItem(itemForm.value)
-  ElMessage.success('保存成功')
-  itemDialogVisible.value = false
-  fetchItems()
-}
-
-async function onItemDelete(row: DictItem) {
-  await ElMessageBox.confirm(`确认删除字典项「${row.label}」？`, '提示', { type: 'warning' })
-  await deleteDictItem(row.id)
-  ElMessage.success('删除成功')
-  fetchItems()
-}
-
-onMounted(fetchTypes)
 </script>
 
 <template>

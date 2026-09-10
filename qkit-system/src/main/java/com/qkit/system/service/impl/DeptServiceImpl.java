@@ -45,17 +45,31 @@ public class DeptServiceImpl implements DeptService {
     @Transactional(readOnly = true)
     public R<List<DeptTreeVO>> tree(String name) {
         Long userId = StpUtil.getLoginIdAsLong();
-        LambdaQueryWrapper<Dept> wrapper = new LambdaQueryWrapper<Dept>()
-                .like(name != null && !name.isBlank(), Dept::getName, name)
-                .orderByAsc(Dept::getSort);
-        List<Dept> all = deptMapper.selectList(wrapper);
-        Map<Long, List<Dept>> byParent = all.stream()
+        List<Dept> all = deptMapper.selectList(new LambdaQueryWrapper<Dept>().orderByAsc(Dept::getSort));
+        List<Dept> nodes = (name == null || name.isBlank()) ? all : withAncestors(all, name);
+        Map<Long, List<Dept>> byParent = nodes.stream()
                 .collect(Collectors.groupingBy(d -> d.getParentId() == null ? 0L : d.getParentId()));
         List<DeptTreeVO> fullTree = buildTree(0L, byParent);
+        // 数据权限过滤必须在树构建之后：先裁剪会让子节点因父节点缺失而一起丢失
         List<Long> visibleIds = dataScopeHelper.visibleDeptIds(userId);
         Set<Long> visible = visibleIds != null ? new HashSet<>(visibleIds) : null;
-        List<DeptTreeVO> filtered = visible != null ? filterTree(fullTree, visible) : fullTree;
-        return R.ok(filtered);
+        return R.ok(visible != null ? filterTree(fullTree, visible) : fullTree);
+    }
+
+    /** 关键字过滤：保留命中节点及其全部祖先，避免父节点未命中时整棵子树从结果中消失 */
+    private List<Dept> withAncestors(List<Dept> all, String keyword) {
+        Map<Long, Dept> byId = all.stream().collect(Collectors.toMap(Dept::getId, d -> d, (a, b) -> a));
+        Set<Long> keep = new HashSet<>();
+        for (Dept dept : all) {
+            if (dept.getName() == null || !dept.getName().contains(keyword)) continue;
+            Long cur = dept.getId();
+            while (cur != null && keep.add(cur)) {
+                Dept node = byId.get(cur);
+                if (node == null) break;
+                cur = (node.getParentId() == null || node.getParentId() == 0L) ? null : node.getParentId();
+            }
+        }
+        return all.stream().filter(d -> keep.contains(d.getId())).toList();
     }
 
     @Override
@@ -88,6 +102,7 @@ public class DeptServiceImpl implements DeptService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public R<Boolean> update(DeptSaveDTO dto) {
+        validateParent(dto.id(), dto.parentId());
         Dept dept = new Dept();
         dept.setId(dto.id());
         dept.setName(dto.name());
@@ -124,6 +139,19 @@ public class DeptServiceImpl implements DeptService {
         return R.ok(true);
     }
 
+    /** 校验上级部门合法：沿目标父部门向上回溯，若命中自身说明目标父部门位于自己的子树中（含自环） */
+    private void validateParent(Long id, Long parentId) {
+        if (id == null || parentId == null || parentId == 0L) return;
+        Map<Long, Long> parentOf = deptMapper.selectList(null).stream()
+                .collect(Collectors.toMap(Dept::getId,
+                        d -> d.getParentId() == null ? 0L : d.getParentId(), (a, b) -> a));
+        Long cur = parentId;
+        while (cur != null && cur != 0L) {
+            if (cur.equals(id)) throw new BusinessException(ErrorCode.DEPT_PARENT_INVALID);
+            cur = parentOf.get(cur);
+        }
+    }
+
     private int countChildren(Long rootId, Map<Long, List<Long>> parentToChildren) {
         Deque<Long> stack = new ArrayDeque<>();
         stack.push(rootId);
@@ -140,13 +168,13 @@ public class DeptServiceImpl implements DeptService {
     private List<DeptTreeVO> filterTree(List<DeptTreeVO> nodes, Set<Long> visible) {
         return nodes.stream()
                 .filter(n -> visible.contains(n.id()))
-                .map(n -> DeptTreeVO.from(n.id(), n.parentId(), n.label(), filterTree(n.children(), visible)))
+                .map(n -> n.withChildren(filterTree(n.children(), visible)))
                 .collect(Collectors.toList());
     }
 
     private List<DeptTreeVO> buildTree(Long parentId, Map<Long, List<Dept>> byParent) {
         return byParent.getOrDefault(parentId, List.of()).stream()
-                .map(d -> DeptTreeVO.from(d.getId(), d.getParentId(), d.getName(), buildTree(d.getId(), byParent)))
+                .map(d -> DeptTreeVO.from(d, buildTree(d.getId(), byParent)))
                 .toList();
     }
 }

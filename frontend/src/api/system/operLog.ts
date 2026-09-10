@@ -25,7 +25,8 @@ export function pageOperLog(params: {
   module?: string
   username?: string
   status?: number
-  startTime?: string
+  /** 与后端 OperLogQueryDTO 字段名对齐 */
+  beginTime?: string
   endTime?: string
 }) {
   return request.page<OperLogItem>({

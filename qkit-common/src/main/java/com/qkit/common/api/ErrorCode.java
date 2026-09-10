@@ -33,14 +33,17 @@ public enum ErrorCode {
     ROLE_EXISTS(11004, "角色编码已存在"),
 
     MENU_HAS_CHILDREN(12001, "存在子菜单，无法删除"),
+    MENU_PARENT_INVALID(12002, "上级菜单不能是自身或其下级"),
     DEPT_HAS_CHILDREN(13001, "存在子部门，无法删除"),
     DEPT_HAS_USER(13002, "部门下存在用户，无法删除"),
+    DEPT_PARENT_INVALID(13003, "上级部门不能是自身或其下级"),
 
     DICT_HAS_ITEMS(14001, "字典下存在字典项，无法删除"),
 
     POST_IN_USE(15001, "岗位已分配用户，无法删除"),
 
     EXPORT_ERROR(16001, "导出失败，请稍后重试"),
+    EXPORT_LIMIT_EXCEEDED(16002, "导出数据量超过上限，请缩小查询范围后重试"),
 
     CONFIG_KEY_EXISTS(17001, "参数键名已存在"),
     CONFIG_BUILTIN(17002, "系统内置参数，不允许删除或修改键名"),

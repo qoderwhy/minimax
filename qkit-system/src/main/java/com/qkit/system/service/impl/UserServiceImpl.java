@@ -5,6 +5,8 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.ExcelWriter;
+import com.alibaba.excel.write.metadata.WriteSheet;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qkit.common.api.ErrorCode;
@@ -40,6 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +58,12 @@ public class UserServiceImpl implements UserService {
 
     /** 内置超级管理员账号，禁止删除 / 停用 / 改名 */
     private static final String ADMIN_USERNAME = "admin";
+
+    /** 导出单次最大行数：超过则直接失败，避免整表导出拖垮服务 */
+    private static final long EXPORT_MAX_ROWS = 5000L;
+
+    /** 导出分批读取大小，不得超过分页插件的单页上限 */
+    private static final long EXPORT_BATCH_SIZE = 200L;
 
     private final UserMapper userMapper;
     private final DeptMapper deptMapper;
@@ -88,36 +97,57 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     @DataScope(table = "sys_user", deptColumn = "dept_id", userColumn = "create_by")
     public void export(UserQueryDTO query, HttpServletResponse response) {
+        // 先统计命中总数：超限直接失败，避免响应已写入后报错导致文件损坏
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
                 .like(StrUtil.isNotBlank(query.username()), User::getUsername, query.username())
                 .like(StrUtil.isNotBlank(query.nickname()), User::getNickname, query.nickname())
                 .like(StrUtil.isNotBlank(query.phone()), User::getPhone, query.phone())
                 .eq(query.status() != null, User::getStatus, query.status())
-                .eq(query.deptId() != null, User::getDeptId, query.deptId())
-                .orderByDesc(User::getId);
-        List<User> users = userMapper.selectList(wrapper);
-        List<UserVO> voList = enrichUsers(users);
-        List<UserExportVO> exportList = new ArrayList<>(users.size());
-        for (UserVO vo : voList) {
-            exportList.add(UserExportVO.builder()
-                    .username(vo.username())
-                    .nickname(vo.nickname())
-                    .realName(vo.realName())
-                    .phone(vo.phone())
-                    .email(vo.email())
-                    .deptName(vo.deptName())
-                    .postName(vo.postName())
-                    .statusLabel(vo.statusLabel())
-                    .createTime(vo.createTime())
-                    .build());
+                .eq(query.deptId() != null, User::getDeptId, query.deptId());
+        long total = userMapper.selectCount(wrapper);
+        if (total > EXPORT_MAX_ROWS) {
+            throw new BusinessException(ErrorCode.EXPORT_LIMIT_EXCEEDED);
         }
+        // 统计完成后再补排序：selectCount 会把 order by 一并带入，MySQL 严格模式下无法执行
+        wrapper.orderByDesc(User::getId);
+
+        OutputStream outputStream;
         try {
-            EasyExcel.write(response.getOutputStream(), UserExportVO.class)
-                    .sheet("用户列表")
-                    .doWrite(exportList);
+            outputStream = response.getOutputStream();
         } catch (IOException e) {
             throw new SystemException(ErrorCode.EXPORT_ERROR, "导出失败，请稍后重试", e);
         }
+
+        // 分批读取 + 流式写出，避免整表载入内存
+        ExcelWriter writer = EasyExcel.write(outputStream, UserExportVO.class).build();
+        WriteSheet sheet = EasyExcel.writerSheet("用户列表").build();
+        long pageNum = 1;
+        long written = 0;
+        while (written < total) {
+            Page<User> page = userMapper.selectPage(Page.of(pageNum, EXPORT_BATCH_SIZE), wrapper);
+            List<User> records = page.getRecords();
+            if (records.isEmpty()) {
+                break;
+            }
+            List<UserExportVO> rows = new ArrayList<>(records.size());
+            for (UserVO vo : enrichUsers(records)) {
+                rows.add(UserExportVO.builder()
+                        .username(vo.username())
+                        .nickname(vo.nickname())
+                        .realName(vo.realName())
+                        .phone(vo.phone())
+                        .email(vo.email())
+                        .deptName(vo.deptName())
+                        .postName(vo.postName())
+                        .statusLabel(vo.statusLabel())
+                        .createTime(vo.createTime())
+                        .build());
+            }
+            writer.write(rows, sheet);
+            written += records.size();
+            pageNum++;
+        }
+        writer.finish();
     }
 
     @Override
@@ -135,6 +165,19 @@ public class UserServiceImpl implements UserService {
                 vo.createTime(), vo.remark(),
                 roleIds
         ));
+    }
+
+    /**
+     * 管理端详情。数据权限由 {@code @DataScope} + MyBatis-Plus 拦截器在 SQL 层生效，
+     * 不可见的记录查询结果为空，与「用户不存在」同义。
+     *
+     * <p>与 {@link #detail(Long)} 分离，避免个人中心（本人）被数据范围误过滤。</p>
+     */
+    @Override
+    @Transactional(readOnly = true)
+    @DataScope(table = "sys_user", deptColumn = "dept_id", userColumn = "create_by")
+    public R<UserVO> detailInScope(Long id) {
+        return detail(id);
     }
 
     @Override

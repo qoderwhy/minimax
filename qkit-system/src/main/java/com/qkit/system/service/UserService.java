@@ -20,6 +20,9 @@ public interface UserService {
 
     R<UserVO> detail(Long id);
 
+    /** 管理端详情：受数据权限约束，超出可见范围按「不存在」处理 */
+    R<UserVO> detailInScope(Long id);
+
     R<Long> create(UserSaveDTO dto);
 
     R<Boolean> update(UserSaveDTO dto);

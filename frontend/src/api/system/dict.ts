@@ -59,28 +59,27 @@ export function deleteDictType(id: number) {
   return request.delete<void>({ url: '/admin-api/system/dict/delete', data: [id] })
 }
 
-/** 字典项列表：后端 /items 返回指定类型全部字典项（非分页），前端由调用方自行分页 */
+/**
+ * 字典项分页查询（管理端）：走后端分页，避免把某类型下的全部字典项拉到前端再切片。
+ * 入参沿用页面上的 type 命名，请求时映射为后端的 dictType。
+ */
 export function pageDictItem(params: {
   pageNum?: number
   pageSize?: number
   type?: string
   label?: string
+  status?: number
 }) {
-  const { type } = params
-  return request.get<DictItem[]>({ url: '/admin-api/system/dict/items', params: { type } }).then(
-    (list) => {
-      const filtered = labelFilter(list, params.label)
-      const pageNum = params.pageNum || 1
-      const pageSize = params.pageSize || 10
-      const start = (pageNum - 1) * pageSize
-      return { list: filtered.slice(start, start + pageSize), total: filtered.length }
+  return request.page<DictItem>({
+    url: '/admin-api/system/dict/item/page',
+    params: {
+      dictType: params.type,
+      label: params.label,
+      status: params.status,
+      pageNum: params.pageNum,
+      pageSize: params.pageSize
     }
-  )
-}
-
-function labelFilter(list: DictItem[], label?: string) {
-  if (!label) return list
-  return list.filter((i) => i.label.includes(label))
+  })
 }
 
 export function saveDictItem(data: DictItemSave) {

@@ -445,8 +445,8 @@ INSERT INTO sys_post (id, code, name, dept_id, sort, status, create_by, create_t
 (3, 'product', '产品经理',   3, 1, 1, 1, NOW());
 
 -- ---------- 12. admin 用户 ----------
--- password = admin1234 的 BCrypt 哈希（cost=10）
--- 实际部署时由 `make seed` 或启动器重新哈希；此处 hash 由 `BCrypt.hashpw('admin1234', BCrypt.gensalt(10))` 生成。
+-- password = admin123 的 BCrypt 哈希（cost=10）
+-- 实际部署时由 `make seed` 或启动器重新哈希；此处 hash 由 `BCrypt.hashpw('admin123', BCrypt.gensalt(10))` 生成。
 INSERT INTO sys_user (id, username, password, nickname, real_name, status, dept_id, post_id, create_by, create_time) VALUES
 (1, 'admin', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '超管', '超级管理员', 1, 1, 1, 1, NOW());
 
@@ -489,11 +489,12 @@ INSERT INTO sys_dict_item (dict_type, label, value, sort, status, create_by, cre
 
 -- ---------- 14. 系统参数配置 ----------
 INSERT INTO sys_config (id, config_name, config_key, config_value, config_type, remark, create_by, create_time) VALUES
-(1, '用户初始密码',       'sys.user.initPassword',    '123456',     'Y', '新用户默认初始密码',                1, NOW()),
+(1, '用户初始密码',       'sys.user.initPassword',    'Qkit@123',   'Y', '新用户默认初始密码（需满足 8-32 位）', 1, NOW()),
 (2, '登录验证码开关',     'sys.login.captchaEnabled', 'true',       'Y', '登录时是否显示图形验证码',          1, NOW()),
 (3, '登录失败锁定次数',   'sys.login.retryLimit',     '5',          'N', '同一用户名密码连续输错锁定次数',    1, NOW()),
 (4, '上传文件大小上限',   'sys.upload.maxSize',       '10',         'N', '上传文件大小上限(MB)',              1, NOW()),
-(5, '系统首页皮肤',       'sys.index.skinName',       'skin-blue',  'N', '系统首页皮肤',                      1, NOW());
+(5, '系统首页皮肤',       'sys.index.skinName',       'skin-blue',  'N', '系统首页皮肤',                      1, NOW()),
+(6, '同一IP失败锁定次数', 'sys.login.ipRetryLimit',   '20',         'N', '同一来源 IP 连续登录失败锁定次数',  1, NOW());
 ```
 
 > 完整 DDL 在 `qkit-admin/src/main/resources/db/migration/V1.0.0__init.sql`，种子数据在 `V1.0.1__seed.sql`。

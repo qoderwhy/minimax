@@ -11,6 +11,18 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 100MB
+  task:
+    execution:
+      thread-name-prefix: qkit-async-
+      pool:
+        # 异步任务当前仅用于操作日志落库；队列必须有界，避免流量突增时任务无限堆积
+        core-size: 4
+        max-size: 16
+        queue-capacity: 1000
+        keep-alive: 60s
+      shutdown:
+        await-termination: true
+        await-termination-period: 10s
 
 server:
   port: 8080

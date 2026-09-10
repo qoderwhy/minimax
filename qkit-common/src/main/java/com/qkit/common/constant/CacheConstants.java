@@ -8,8 +8,11 @@ public final class CacheConstants {
     /** 用户权限缓存：perm:{userId} → List<String> 权限码集合 */
     public static final String PERM_KEY_PREFIX = "perm:";
 
-    /** 登录失败计数：login:fail:{username}，5 次失败锁定 10 分钟 */
+    /** 登录失败计数（用户名维度）：login:fail:{username} */
     public static final String LOGIN_FAIL_KEY_PREFIX = "login:fail:";
+
+    /** 登录失败计数（来源 IP 维度）：login:fail:ip:{ip} */
+    public static final String LOGIN_FAIL_IP_KEY_PREFIX = "login:fail:ip:";
 
     /** 图形验证码：captcha:{uuid}，3 分钟过期 */
     public static final String CAPTCHA_KEY_PREFIX = "captcha:";
@@ -17,7 +20,7 @@ public final class CacheConstants {
     /** 部门子树缓存：dept:child:{deptId}，TTL 5 分钟 */
     public static final String DEPT_CHILD_KEY_PREFIX = "dept:child:";
 
-    /** 字典缓存：sys_dict:{type} → JSON 列表，TTL 永不过期 */
+    /** 字典缓存：sys_dict:{type} → JSON 列表，TTL 7 天（见 DictServiceImpl#loadToCache） */
     public static final String DICT_KEY_PREFIX = "sys_dict:";
 
     /** 系统参数缓存：sys_config:{configKey} → String configValue，增删改后刷新 */

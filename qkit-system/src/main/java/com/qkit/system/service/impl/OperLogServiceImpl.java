@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qkit.common.api.ErrorCode;
 import com.qkit.common.api.R;
 import com.qkit.common.exception.BusinessException;
+import com.qkit.common.util.TimeUtil;
 import com.qkit.framework.security.annotation.DataScope;
 import com.qkit.system.domain.dto.OperLogQueryDTO;
 import com.qkit.system.domain.entity.OperLog;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -34,10 +36,14 @@ public class OperLogServiceImpl implements OperLogService {
         Page<OperLog> page = Page.of(
                 query.pageNum() == null ? 1 : query.pageNum(),
                 query.pageSize() == null ? 10 : query.pageSize());
+        LocalDateTime beginTime = TimeUtil.parseNullable(query.beginTime());
+        LocalDateTime endTime = TimeUtil.parseNullable(query.endTime());
         LambdaQueryWrapper<OperLog> wrapper = new LambdaQueryWrapper<OperLog>()
                 .like(StrUtil.isNotBlank(query.module()), OperLog::getModule, query.module())
                 .like(StrUtil.isNotBlank(query.username()), OperLog::getUsername, query.username())
                 .eq(query.status() != null, OperLog::getStatus, query.status())
+                .ge(beginTime != null, OperLog::getOperTime, beginTime)
+                .le(endTime != null, OperLog::getOperTime, endTime)
                 .orderByDesc(OperLog::getOperTime);
         Page<OperLog> result = operLogMapper.selectPage(page, wrapper);
         return R.ok(result.getRecords().stream().map(this::toVO).toList(),

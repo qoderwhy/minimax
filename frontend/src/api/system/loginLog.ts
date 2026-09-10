@@ -16,7 +16,8 @@ export function pageLoginLog(params: {
   pageSize?: number
   username?: string
   status?: number
-  startTime?: string
+  /** 与后端 LoginLogQueryDTO 字段名对齐 */
+  beginTime?: string
   endTime?: string
 }) {
   return request.page<LoginLogItem>({

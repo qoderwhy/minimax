@@ -7,6 +7,7 @@ import com.qkit.common.validation.group.SaveGroup;
 import com.qkit.common.validation.group.UpdateGroup;
 import com.qkit.framework.log.annotation.OperLog;
 import com.qkit.framework.repeat.annotation.RepeatSubmit;
+import com.qkit.system.domain.dto.DictItemQueryDTO;
 import com.qkit.system.domain.dto.DictItemSaveDTO;
 import com.qkit.system.domain.dto.DictQueryDTO;
 import com.qkit.system.domain.dto.DictSaveDTO;
@@ -42,6 +43,14 @@ public class DictController {
     @SaCheckPermission("system:dict:list")
     public R<List<DictItemVO>> items(@RequestParam String type) {
         return dictService.listItems(type);
+    }
+
+    @Operation(summary = "分页查询字典项")
+    @GetMapping("/item/page")
+    @SaCheckPermission("system:dict:list")
+    public R<List<DictItemVO>> itemPage(DictItemQueryDTO query) {
+        query = query.withPageDefaults();
+        return dictService.pageItems(query);
     }
 
     @Operation(summary = "字典项（公开，按 typeCode）")

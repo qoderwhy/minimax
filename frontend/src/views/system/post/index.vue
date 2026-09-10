@@ -1,62 +1,27 @@
 <script setup lang="ts">
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
 import { pagePost, savePost, deletePost, type PostItem, type PostSave } from '@/api/system/post'
+import { useCrud } from '@/composables/useCrud'
 
-const query = reactive({ pageNum: 1, pageSize: 10, name: '', code: '', status: undefined as number | undefined })
-const list = ref<PostItem[]>([])
-const total = ref(0)
-const loading = ref(false)
-const dialogVisible = ref(false)
-const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<PostSave>({ id: undefined, name: '', code: '', sort: 0, status: 1, remark: '' })
-const formRef = ref()
-
-async function fetch() {
-  loading.value = true
-  try {
-    const res = await pagePost(query)
-    list.value = res.list
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
+type PostQuery = {
+  pageNum: number
+  pageSize: number
+  name: string
+  code: string
+  status?: number
 }
 
-function onSearch() {
-  query.pageNum = 1
-  fetch()
-}
-
-function onAdd() {
-  dialogMode.value = 'add'
-  form.value = { id: undefined, name: '', code: '', sort: 0, status: 1, remark: '' }
-  dialogVisible.value = true
-}
-
-function onEdit(row: PostItem) {
-  dialogMode.value = 'edit'
-  form.value = { id: row.id, name: row.name, code: row.code, sort: row.sort, status: row.status, remark: row.remark || '' }
-  dialogVisible.value = true
-}
-
-async function onSave() {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
-  await savePost(form.value)
-  ElMessage.success('保存成功')
-  dialogVisible.value = false
-  fetch()
-}
-
-async function onDelete(row: PostItem) {
-  await ElMessageBox.confirm(`确认删除岗位「${row.name}」？`, '提示', { type: 'warning' })
-  await deletePost(row.id)
-  ElMessage.success('删除成功')
-  fetch()
-}
-
-onMounted(fetch)
+const {
+  query, list, total, loading,
+  dialogVisible, dialogMode, form, formRef,
+  fetch, onSearch, onAdd, onEdit, onSave, onDelete
+} = useCrud<PostItem, PostQuery, PostSave>({
+  page: (q) => pagePost(q),
+  save: (data) => savePost(data),
+  remove: (id) => deletePost(Number(id)),
+  defaultQuery: () => ({ pageNum: 1, pageSize: 10, name: '', code: '', status: undefined }),
+  defaultForm: () => ({ id: undefined, name: '', code: '', sort: 0, status: 1, remark: '' }),
+  confirmDelete: (row) => `确认删除岗位「${row.name}」？`
+})
 </script>
 
 <template>

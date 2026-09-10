@@ -26,7 +26,6 @@ import com.qkit.system.enums.DataScopeEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
@@ -37,6 +36,10 @@ public class AuthServiceImpl implements AuthService {
 
     /** 登录验证码开关的系统参数键名 */
     private static final String CAPTCHA_ENABLED_KEY = "sys.login.captchaEnabled";
+    /** 用户名维度登录失败次数上限的系统参数键名 */
+    private static final String RETRY_LIMIT_KEY = "sys.login.retryLimit";
+    /** IP 维度登录失败次数上限的系统参数键名 */
+    private static final String IP_RETRY_LIMIT_KEY = "sys.login.ipRetryLimit";
 
     // 缓存验证码
     private final CacheService cacheService;
@@ -57,11 +60,16 @@ public class AuthServiceImpl implements AuthService {
         return R.ok(new CaptchaVO(result.uuid(), result.base64()));
     }
 
+    /**
+     * 登录。不加事务：流程含 BCrypt 校验与多次 Redis 访问，且只有一次单条更新（本身即原子），
+     * 无需让数据库事务跨越密码校验，避免长时间占用连接。
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public R<LoginVO> login(LoginDTO dto, String clientIp) {
-        // 1. 校验失败次数
-        loginRateLimiter.validate(dto.username());
+        // 1. 校验失败次数（用户名 + 来源 IP 双维度，阈值取自系统参数）
+        loginRateLimiter.validate(dto.username(), clientIp,
+                sysConfigService.getInt(RETRY_LIMIT_KEY, SecurityConstants.MAX_LOGIN_FAIL_COUNT),
+                sysConfigService.getInt(IP_RETRY_LIMIT_KEY, SecurityConstants.MAX_LOGIN_FAIL_IP_COUNT));
 
         // 2. 校验图形验证码（可通过 sys.login.captchaEnabled 关闭，默认强制开启）
         if (sysConfigService.getBoolean(CAPTCHA_ENABLED_KEY, true)) {
@@ -83,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
         // 3. 校验用户
         User user = userService.getByUsername(dto.username());
         if (user == null) {
-            loginRateLimiter.onLoginFail(dto.username());
+            loginRateLimiter.onLoginFail(dto.username(), clientIp);
             loginLogRecorder.record(null, dto.username(), clientIp, 0, "用户不存在");
             throw new BusinessException(ErrorCode.USERNAME_OR_PASSWORD_ERROR);
         }
@@ -92,7 +100,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.USER_DISABLED);
         }
         if (!BCrypt.checkpw(dto.password(), user.getPassword())) {
-            loginRateLimiter.onLoginFail(dto.username());
+            loginRateLimiter.onLoginFail(dto.username(), clientIp);
             loginLogRecorder.record(user.getId(), dto.username(), clientIp, 0, "密码错误");
             throw new BusinessException(ErrorCode.USERNAME_OR_PASSWORD_ERROR);
         }

@@ -1,6 +1,7 @@
 import request from '@/utils/request'
 
-export interface DeptItem {
+/** 部门树节点（对应后端 DeptTreeVO，label 为部门名称） */
+export interface DeptTreeItem {
   id: number
   parentId: number
   label: string
@@ -9,7 +10,14 @@ export interface DeptItem {
   phone?: string
   email?: string
   status?: number
-  children?: DeptItem[]
+  children?: DeptTreeItem[]
+}
+
+/** 部门下拉项（对应后端 DeptSimpleVO，name 为部门名称） */
+export interface DeptSimpleItem {
+  id: number
+  name: string
+  parentId: number
 }
 
 export interface DeptSave {
@@ -24,11 +32,11 @@ export interface DeptSave {
 }
 
 export function treeDept() {
-  return request.get<DeptItem[]>({ url: '/admin-api/system/dept/tree' })
+  return request.get<DeptTreeItem[]>({ url: '/admin-api/system/dept/tree' })
 }
 
 export function listDept() {
-  return request.get<DeptItem[]>({ url: '/admin-api/system/dept/simple-list' })
+  return request.get<DeptSimpleItem[]>({ url: '/admin-api/system/dept/simple-list' })
 }
 
 export function saveDept(data: DeptSave) {

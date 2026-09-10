@@ -33,8 +33,14 @@ public class RedisConfig {
         om.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         om.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        // 白名单收窄：只放行项目缓存实际使用的类型族（JDK 基础类型 / 集合 / 时间 / 项目类型），
+        // 阻断以 Object 为基类的通用 gadget 反序列化。新增缓存类型时需同步扩展此白名单。
         PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
-                .allowIfBaseType(Object.class)
+                .allowIfSubType("java.lang.")
+                .allowIfSubType("java.util.")
+                .allowIfSubType("java.time.")
+                .allowIfSubType("java.math.")
+                .allowIfSubType("com.qkit.")
                 .build();
         om.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.EVERYTHING, JsonTypeInfo.As.PROPERTY);
         GenericJackson2JsonRedisSerializer valueSerializer = new GenericJackson2JsonRedisSerializer(om);

@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qkit.common.api.ErrorCode;
 import com.qkit.common.api.R;
 import com.qkit.common.exception.BusinessException;
+import com.qkit.common.util.TimeUtil;
 import com.qkit.framework.security.annotation.DataScope;
 import com.qkit.system.domain.dto.LoginLogQueryDTO;
 import com.qkit.system.domain.entity.LoginLog;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -33,9 +35,13 @@ public class LoginLogServiceImpl implements LoginLogService {
         Page<LoginLog> page = Page.of(
                 query.pageNum() == null ? 1 : query.pageNum(),
                 query.pageSize() == null ? 10 : query.pageSize());
+        LocalDateTime beginTime = TimeUtil.parseNullable(query.beginTime());
+        LocalDateTime endTime = TimeUtil.parseNullable(query.endTime());
         LambdaQueryWrapper<LoginLog> wrapper = new LambdaQueryWrapper<LoginLog>()
                 .like(StrUtil.isNotBlank(query.username()), LoginLog::getUsername, query.username())
                 .eq(query.status() != null, LoginLog::getStatus, query.status())
+                .ge(beginTime != null, LoginLog::getLoginTime, beginTime)
+                .le(endTime != null, LoginLog::getLoginTime, endTime)
                 .orderByDesc(LoginLog::getLoginTime);
         Page<LoginLog> result = loginLogMapper.selectPage(page, wrapper);
         return R.ok(result.getRecords().stream().map(this::toVO).toList(),

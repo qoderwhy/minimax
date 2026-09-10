@@ -24,6 +24,9 @@ import java.time.LocalDateTime;
 @Component
 public class MybatisPlusConfig {
 
+    /** 单页最大条数，超过则被分页插件收敛为该值 */
+    private static final long MAX_PAGE_SIZE = 200L;
+
     /**
      * 拦截器链：数据权限 → 分页 → 乐观锁 → 防全表更新。
      * DataPermissionInterceptor 必须在分页之前（先追加 WHERE 再分页优化）。
@@ -36,7 +39,10 @@ public class MybatisPlusConfig {
             interceptor.addInnerInterceptor(new DataPermissionInterceptor(handler));
             log.info("已注册数据权限拦截器 DataPermissionInterceptor");
         });
-        interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
+        // 与 05-api.md 约定保持一致：单页最大 200 条，避免 pageSize 被放大导致慢查询与内存压力
+        PaginationInnerInterceptor pagination = new PaginationInnerInterceptor(DbType.MYSQL);
+        pagination.setMaxLimit(MAX_PAGE_SIZE);
+        interceptor.addInnerInterceptor(pagination);
         interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
         interceptor.addInnerInterceptor(new BlockAttackInnerInterceptor());
         return interceptor;

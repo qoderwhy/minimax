@@ -57,10 +57,6 @@ export function getRoleDeptIds(roleId: number) {
   return request.get<number[]>({ url: '/admin-api/system/role/dept-ids', params: { roleId } })
 }
 
-export function assignRoleDept(roleId: number, deptIds: number[]) {
-  return request.put<void>({ url: '/admin-api/system/role/assign-dept', params: { roleId }, data: deptIds })
-}
-
 /** 查询角色已分配菜单 ID（与 assign-dept 对称，供授权弹窗回显） */
 export function getRoleMenuIds(roleId: number) {
   return request.get<number[]>({ url: '/admin-api/system/role/menu-ids', params: { roleId } })

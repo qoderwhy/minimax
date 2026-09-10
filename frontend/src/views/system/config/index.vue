@@ -1,66 +1,34 @@
 <script setup lang="ts">
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
-import { deleteConfig, pageConfig, saveConfig, type SysConfig, type SysConfigSave } from '@/api/system/config'
+import { ElMessage } from 'element-plus'
+import { pageConfig, saveConfig, deleteConfig, type SysConfig, type SysConfigSave } from '@/api/system/config'
+import { useCrud } from '@/composables/useCrud'
 
-const query = reactive({ pageNum: 1, pageSize: 10, configKey: '', configName: '' })
-const list = ref<SysConfig[]>([])
-const total = ref(0)
-const loading = ref(false)
-const dialogVisible = ref(false)
-const dialogMode = ref<'add' | 'edit'>('add')
-const form = ref<SysConfigSave>({ id: undefined, configName: '', configKey: '', configValue: '', configType: 'N', remark: '' })
-const formRef = ref()
-
-async function fetchList() {
-  loading.value = true
-  try {
-    const res = await pageConfig(query)
-    list.value = res.list
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
+type ConfigQuery = {
+  pageNum: number
+  pageSize: number
+  configKey: string
+  configName: string
 }
 
-function onSearch() {
-  query.pageNum = 1
-  fetchList()
-}
-
-function onAdd() {
-  dialogMode.value = 'add'
-  form.value = { id: undefined, configName: '', configKey: '', configValue: '', configType: 'N', remark: '' }
-  dialogVisible.value = true
-}
-
-function onEdit(row: SysConfig) {
-  dialogMode.value = 'edit'
-  form.value = { ...row }
-  dialogVisible.value = true
-}
-
-async function onSave() {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
-  await saveConfig(form.value)
-  ElMessage.success('保存成功')
-  dialogVisible.value = false
-  fetchList()
-}
-
-async function onDelete(row: SysConfig) {
-  if (row.configType === 'Y') {
-    ElMessage.warning('系统内置参数不允许删除')
-    return
-  }
-  await ElMessageBox.confirm(`确认删除参数「${row.configName}」？`, '提示', { type: 'warning' })
-  await deleteConfig(row.id)
-  ElMessage.success('删除成功')
-  fetchList()
-}
-
-onMounted(fetchList)
+const {
+  query, list, total, loading,
+  dialogVisible, dialogMode, form, formRef,
+  fetch: fetchList, onSearch, onAdd, onEdit, onSave, onDelete
+} = useCrud<SysConfig, ConfigQuery, SysConfigSave>({
+  page: (q) => pageConfig(q),
+  save: (data) => saveConfig(data),
+  remove: (id) => deleteConfig(Number(id)),
+  defaultQuery: () => ({ pageNum: 1, pageSize: 10, configKey: '', configName: '' }),
+  defaultForm: () => ({ id: undefined, configName: '', configKey: '', configValue: '', configType: 'N', remark: '' }),
+  beforeDelete: (row) => {
+    if (row.configType === 'Y') {
+      ElMessage.warning('系统内置参数不允许删除')
+      return false
+    }
+    return true
+  },
+  confirmDelete: (row) => `确认删除参数「${row.configName}」？`
+})
 </script>
 
 <template>

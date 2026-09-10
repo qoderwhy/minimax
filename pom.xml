@@ -105,6 +105,12 @@
     <build>
         <pluginManagement>
             <plugins>
+                <!-- 显式指定版本：Maven 默认绑定的旧版 surefire 不会发现 JUnit 5 测试 -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.5</version>
+                </plugin>
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
