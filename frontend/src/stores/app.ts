@@ -72,6 +72,11 @@ export const useAppStore = defineStore('app', () => {
     sidebarCollapsed.value = !sidebarCollapsed.value
   }
 
+  /** 直接设置折叠状态（窄屏适配时由布局调用） */
+  function setSidebarCollapsed(collapsed: boolean) {
+    sidebarCollapsed.value = collapsed
+  }
+
   return {
     sidebarCollapsed,
     tags,
@@ -82,6 +87,7 @@ export const useAppStore = defineStore('app', () => {
     closeRightTags,
     closeAllTags,
     resetTags,
-    toggleSidebar
+    toggleSidebar,
+    setSidebarCollapsed
   }
 })

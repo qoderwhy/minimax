@@ -15,8 +15,9 @@ const loading = ref(false)
 const captchaInfo = ref<CaptchaVO | null>(null)
 
 const form = ref({
-  username: 'admin',
-  password: 'admin123',
+  // 仅开发环境预填演示账号，避免默认凭据随生产构建产物外泄
+  username: import.meta.env.DEV ? 'admin' : '',
+  password: import.meta.env.DEV ? 'admin123' : '',
   captchaId: '',
   captchaCode: ''
 })
@@ -107,18 +108,19 @@ async function onSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* 渐变由主色派生，切换主题色时登录页同步变化 */
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
 }
 .login-box {
   width: 380px;
   padding: 32px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  background: var(--el-bg-color);
+  border-radius: var(--app-radius-lg);
+  box-shadow: var(--el-box-shadow-light);
   .title {
     text-align: center;
     margin-bottom: 24px;
-    color: #303133;
+    color: var(--el-text-color-primary);
   }
   .captcha-row {
     display: flex;
@@ -131,7 +133,7 @@ async function onSubmit() {
       width: 120px;
       height: 40px;
       cursor: pointer;
-      border-radius: 4px;
+      border-radius: var(--app-radius-sm);
     }
   }
 }

@@ -14,7 +14,10 @@ const userStore = useUserStore()
 </template>
 
 <style scoped lang="scss">
+/* 内边距由布局容器 .app-main 统一提供，此处不再叠加 */
 .dashboard {
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-md);
 }
 </style>

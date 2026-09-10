@@ -21,7 +21,7 @@ const router = useRouter()
   gap: 16px;
   h1 {
     font-size: 96px;
-    color: #409eff;
+    color: var(--el-color-primary);
   }
 }
 </style>

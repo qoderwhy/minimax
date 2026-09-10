@@ -243,7 +243,7 @@ onMounted(loadProfile)
     }
     .role {
       margin: 0;
-      color: #909399;
+      color: var(--el-text-color-secondary);
       font-size: 13px;
     }
   }
@@ -257,7 +257,7 @@ onMounted(loadProfile)
       padding: 8px 0;
       font-size: 14px;
       .label {
-        color: #909399;
+        color: var(--el-text-color-secondary);
       }
     }
   }

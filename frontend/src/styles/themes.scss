@@ -1,0 +1,84 @@
+@use 'sass:color';
+@use 'sass:map';
+
+/* ------------------------------------------------------------------
+ * 主题配色表
+ *
+ * primary     品牌主色
+ * sidebar-bg  侧边栏背景：每套主题配套不同深色，强化切换时的风格差异
+ *
+ * 新增主题只需在此追加一项，样式、切换面板会自动跟随（面板读取的是前端常量表）。
+ * ---------------------------------------------------------------- */
+$themes: (
+  'blue': (
+    'primary': #409eff,
+    'sidebar-bg': #001529,
+  ),
+  'indigo': (
+    'primary': #4f46e5,
+    'sidebar-bg': #1e1b4b,
+  ),
+  'emerald': (
+    'primary': #10b981,
+    'sidebar-bg': #052e2b,
+  ),
+  'cyan': (
+    'primary': #0ea5e9,
+    'sidebar-bg': #082f49,
+  ),
+  'violet': (
+    'primary': #8b5cf6,
+    'sidebar-bg': #2e1065,
+  ),
+  'rose': (
+    'primary': #f43f5e,
+    'sidebar-bg': #4c0519,
+  ),
+  'slate': (
+    'primary': #64748b,
+    'sidebar-bg': #0f172a,
+  ),
+);
+
+$default-theme: 'blue';
+
+/* 生成主色及派生色。
+ * Element Plus 的 hover / disabled / 边框 / focus 圈都取自派生色，
+ * 只覆盖 --el-color-primary 会导致这些状态仍停留在默认蓝，出现"双主色"。 */
+@mixin primary-palette($primary, $mix-base, $dark-base) {
+  --el-color-primary: #{$primary};
+
+  @each $level in (3, 5, 7, 8, 9) {
+    --el-color-primary-light-#{$level}: #{color.mix($mix-base, $primary, $level * 10%)};
+  }
+
+  --el-color-primary-dark-2: #{color.mix($dark-base, $primary, 20%)};
+}
+
+@mixin theme-vars($primary, $sidebar-bg, $mix-base: #ffffff, $dark-base: #000000) {
+  @include primary-palette($primary, $mix-base, $dark-base);
+
+  --app-sidebar-bg: #{$sidebar-bg};
+  --app-sidebar-logo-bg: #{color.mix(#000000, $sidebar-bg, 18%)};
+  --app-sidebar-text: #{color.mix($sidebar-bg, #ffffff, 22%)};
+}
+
+/* 兜底：未显式设置 data-theme 时使用默认主题（index.html 会尽早写入该属性） */
+:root {
+  @include theme-vars(
+    map.get(map.get($themes, $default-theme), 'primary'),
+    map.get(map.get($themes, $default-theme), 'sidebar-bg')
+  );
+}
+
+@each $name, $config in $themes {
+  html[data-theme='#{$name}'] {
+    @include theme-vars(map.get($config, 'primary'), map.get($config, 'sidebar-bg'));
+  }
+
+  /* 暗色下派生色需向深色底混合，否则 hover 态会发白刺眼；
+   * dark-2 也需反向向白色混合。选择器特异性高于 Element 的 `html.dark`，确保不被覆盖。 */
+  html.dark[data-theme='#{$name}'] {
+    @include theme-vars(map.get($config, 'primary'), map.get($config, 'sidebar-bg'), #141414, #ffffff);
+  }
+}

@@ -194,19 +194,19 @@ watch(() => route.path, closeMenu)
 
 <style scoped lang="scss">
 .tags-view {
-  height: 40px;
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 6px;
-  padding: 0 12px;
-  background: #fff;
-  border-bottom: 1px solid #ebeef5;
+  height: var(--app-tags-height);
+  padding: 0 var(--app-space-sm);
   overflow-x: auto;
-  flex-shrink: 0;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 
   .tags-item {
-    cursor: pointer;
     flex-shrink: 0;
+    cursor: pointer;
   }
 }
 </style>
@@ -217,11 +217,12 @@ watch(() => route.path, closeMenu)
   position: fixed;
   z-index: 3000;
   min-width: 130px;
-  background: #fff;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   padding: 6px 0;
   font-size: 13px;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--app-radius-sm);
+  box-shadow: var(--el-box-shadow-light);
 
   ul {
     margin: 0;
@@ -234,17 +235,17 @@ watch(() => route.path, closeMenu)
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
+    color: var(--el-text-color-primary);
     cursor: pointer;
-    color: #303133;
-    transition: background-color 0.2s;
+    transition: background-color var(--app-transition);
 
     &:hover {
-      background-color: #f5f7fa;
+      background-color: var(--el-fill-color-light);
     }
   }
 
   .tags-menu-disabled {
-    color: #c0c4cc;
+    color: var(--el-text-color-disabled);
     cursor: not-allowed;
 
     &:hover {
@@ -256,7 +257,7 @@ watch(() => route.path, closeMenu)
     height: 1px;
     margin: 4px 0;
     padding: 0;
-    background-color: #ebeef5;
+    background-color: var(--el-border-color-lighter);
     cursor: default;
   }
 }

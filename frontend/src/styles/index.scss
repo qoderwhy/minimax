@@ -1,5 +1,33 @@
+@use './themes';
+
+/* ------------------------------------------------------------------
+ * 全局基础样式与设计 token
+ *
+ * 约定：颜色一律使用 Element Plus 语义变量（--el-bg-color / --el-text-color-* 等），
+ * 暗色模式下这些变量由 element-plus/theme-chalk/dark/css-vars.css 自动切换，
+ * 因此组件层无需为此写任何暗色分支。
+ * 仅 Element Plus 未提供语义的（侧边栏深色、主题相关色）才使用 --app-* 变量。
+ * ---------------------------------------------------------------- */
 :root {
-  --el-color-primary: #409eff;
+  /* 间距梯度 */
+  --app-space-xs: 8px;
+  --app-space-sm: 12px;
+  --app-space-md: 16px;
+  --app-space-lg: 24px;
+
+  /* 圆角梯度 */
+  --app-radius-sm: 4px;
+  --app-radius-md: 6px;
+  --app-radius-lg: 8px;
+
+  /* 布局尺寸 */
+  --app-sidebar-width: 220px;
+  --app-sidebar-width-collapsed: 64px;
+  --app-navbar-height: 56px;
+  --app-tags-height: 40px;
+
+  /* 统一过渡曲线 */
+  --app-transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html,
@@ -11,23 +39,45 @@ body,
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     'Microsoft YaHei', sans-serif;
   font-size: 14px;
-  color: #303133;
-  background: #f5f7fa;
+  /* 等宽数字：表格中的 ID、金额等列位数不同时不会左右跳动 */
+  font-feature-settings: 'tnum';
+  color: var(--el-text-color-primary);
+  background: var(--el-bg-color-page);
 }
 
 * {
   box-sizing: border-box;
 }
 
-.page {
-  padding: 16px;
-  .search-bar {
-    background: #fff;
-    padding: 16px;
-    margin-bottom: 12px;
-    border-radius: 4px;
+/* 滚动条弱化处理，避免在暗色主题下与背景形成强对比 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--el-border-color-darker);
+  border-radius: var(--app-radius-sm);
+
+  &:hover {
+    background: var(--el-text-color-disabled);
   }
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 列表页通用容器：内边距由布局容器 .app-main 统一提供，此处只负责块间留白 */
+.page {
+  .search-bar {
+    padding: var(--app-space-md);
+    margin-bottom: var(--app-space-sm);
+    background: var(--el-bg-color);
+    border-radius: var(--app-radius-md);
+  }
+
   .toolbar {
-    margin-bottom: 12px;
+    margin-bottom: var(--app-space-sm);
   }
 }

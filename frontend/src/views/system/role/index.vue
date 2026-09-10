@@ -211,8 +211,8 @@ onMounted(() => {
   width: 100%;
   max-height: 240px;
   overflow: auto;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--app-radius-sm);
   padding: 4px 8px;
 }
 </style>
