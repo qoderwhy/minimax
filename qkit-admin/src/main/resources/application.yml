@@ -46,7 +46,7 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     enabled: true
-    path: /doc.html
+    path: /swagger-ui.html
   packages-to-scan: com.qkit.system.controller.admin, com.qkit.common.controller
 
 knife4j:
