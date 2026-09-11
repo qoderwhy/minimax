@@ -30,15 +30,15 @@ export function pageOperLog(params: {
   endTime?: string
 }) {
   return request.page<OperLogItem>({
-    url: '/admin-api/system/oper-log/page',
+    url: '/system/oper-log/page',
     params
   })
 }
 
 export function deleteOperLog(id: number) {
-  return request.delete<void>({ url: '/admin-api/system/oper-log/delete', data: [id] })
+  return request.delete<void>({ url: '/system/oper-log/delete', data: [id] })
 }
 
 export function cleanOperLog() {
-  return request.delete<void>({ url: '/admin-api/system/oper-log/clean' })
+  return request.delete<void>({ url: '/system/oper-log/clean' })
 }

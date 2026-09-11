@@ -21,15 +21,15 @@ export function pageLoginLog(params: {
   endTime?: string
 }) {
   return request.page<LoginLogItem>({
-    url: '/admin-api/system/login-log/page',
+    url: '/system/login-log/page',
     params
   })
 }
 
 export function deleteLoginLog(id: number) {
-  return request.delete<void>({ url: '/admin-api/system/login-log/delete', data: [id] })
+  return request.delete<void>({ url: '/system/login-log/delete', data: [id] })
 }
 
 export function cleanLoginLog() {
-  return request.delete<void>({ url: '/admin-api/system/login-log/clean' })
+  return request.delete<void>({ url: '/system/login-log/clean' })
 }

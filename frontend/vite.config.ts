@@ -6,7 +6,12 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig(({ mode }) => {
+  // 空前缀 ''：读取 .env / .env.* 中的全部变量（含不带 VITE_ 前缀的服务端专用变量）
   const env = loadEnv(mode, process.cwd(), '')
+
+  // 代理目标取环境变量，缺省回落到本地默认端口，避免硬编码。
+  const proxyTarget = (key: string, fallback: string): string => env[key] || fallback
+
   return {
     plugins: [
       vue(),
@@ -28,11 +33,17 @@ export default defineConfig(({ mode }) => {
     server: {
       host: '0.0.0.0',
       port: 5173,
+      // 开发代理：路径前缀 -> 对应后端（目标取 PROXY_* 变量，缺省本地端口）。
+      // 新增服务：.env.development 加 PROXY_XXX，下面加 '/xxx' 条目即可。
+      // 仅当请求用相对 baseURL 时走代理；当前 admin-api 用绝对地址直连(CORS)，
+      // 想走代理则把 .env.development 的 VITE_API_BASE_URL 改为 '/admin-api'。
       proxy: {
+        // 主后台 qkit-admin（context-path=/admin-api）
         '/admin-api': {
-          target: env.VITE_API_BASE || 'http://localhost:8080',
+          target: proxyTarget('PROXY_ADMIN', 'http://localhost:8080'),
           changeOrigin: true
         }
+        // 其它微服务示例：'/analytics': { target: proxyTarget('PROXY_ANALYTICS', 'http://localhost:8081'), changeOrigin: true }
       }
     },
     build: {
@@ -42,14 +53,8 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           /**
-           * 按依赖来源拆分产物。
-           *
-           * element-plus 刻意不做强制归组：强制归组会让整个组件库成为入口的静态依赖，
-           * 883 KB 的组件库因此被 modulepreload 进首屏。交由 Rollup 依据引用关系切分后，
-           * 仅布局与登录页用到的组件留在首屏，table / date-picker / tree 等重型组件
-           * 随对应路由懒加载，被多个页面共享的组件则由 Rollup 自动提升为公共 chunk。
-           *
-           * 图标库（约 290 个）体积固定且被多页面共享，单独成 chunk 以便长期缓存。
+           * 按依赖来源拆包：element-plus 不做强制归组（否则 883KB 整库被 modulepreload 进首屏），
+           * 交由 Rollup 按引用关系切分；图标库(约290个)体积固定且多页共享，单独成 chunk 长期缓存。
            */
           manualChunks(id) {
             if (!id.includes('node_modules')) return

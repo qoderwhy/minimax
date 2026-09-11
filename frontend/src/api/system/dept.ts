@@ -32,19 +32,19 @@ export interface DeptSave {
 }
 
 export function treeDept() {
-  return request.get<DeptTreeItem[]>({ url: '/admin-api/system/dept/tree' })
+  return request.get<DeptTreeItem[]>({ url: '/system/dept/tree' })
 }
 
 export function listDept() {
-  return request.get<DeptSimpleItem[]>({ url: '/admin-api/system/dept/simple-list' })
+  return request.get<DeptSimpleItem[]>({ url: '/system/dept/simple-list' })
 }
 
 export function saveDept(data: DeptSave) {
   return data.id
-    ? request.put<void>({ url: '/admin-api/system/dept/update', data })
-    : request.post<void>({ url: '/admin-api/system/dept/create', data })
+    ? request.put<void>({ url: '/system/dept/update', data })
+    : request.post<void>({ url: '/system/dept/create', data })
 }
 
 export function deleteDept(id: number) {
-  return request.delete<void>({ url: '/admin-api/system/dept/delete', data: [id] })
+  return request.delete<void>({ url: '/system/dept/delete', data: [id] })
 }

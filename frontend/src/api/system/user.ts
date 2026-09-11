@@ -40,46 +40,46 @@ export interface UserQuery {
 }
 
 export function pageUser(params: UserQuery) {
-  return request.page<UserItem>({ url: '/admin-api/system/user/page', params })
+  return request.page<UserItem>({ url: '/system/user/page', params })
 }
 
 export function getUser(id: number) {
-  return request.get<UserItem>({ url: `/admin-api/system/user/detail/${id}` })
+  return request.get<UserItem>({ url: `/system/user/detail/${id}` })
 }
 
 export function saveUser(data: UserSave): Promise<number | boolean> {
   return data.id
-    ? request.put<boolean>({ url: '/admin-api/system/user/update', data })
-    : request.post<number>({ url: '/admin-api/system/user/create', data })
+    ? request.put<boolean>({ url: '/system/user/update', data })
+    : request.post<number>({ url: '/system/user/create', data })
 }
 
 /** 分配角色（角色不在用户主表上，需单独调用；roleIds 为空表示清空角色） */
 export function assignRole(userId: number, roleIds: number[]) {
   return request.put<boolean>({
-    url: '/admin-api/system/user/assign-role',
+    url: '/system/user/assign-role',
     params: { userId },
     data: roleIds
   })
 }
 
 export function deleteUser(id: number) {
-  return request.delete<void>({ url: '/admin-api/system/user/delete', data: [id] })
+  return request.delete<void>({ url: '/system/user/delete', data: [id] })
 }
 
 export function resetUserPassword(id: number, password: string) {
   return request.put<void>({
-    url: '/admin-api/system/user/reset-password',
+    url: '/system/user/reset-password',
     data: { userId: id, newPassword: password }
   })
 }
 
 export function updateUserStatus(id: number, status: number) {
   return request.put<void>({
-    url: '/admin-api/system/user/update',
+    url: '/system/user/update',
     data: { id, status }
   })
 }
 
 export function exportUser(params: UserQuery) {
-  return request.download<Blob>({ url: '/admin-api/system/user/export', params })
+  return request.download<Blob>({ url: '/system/user/export', params })
 }

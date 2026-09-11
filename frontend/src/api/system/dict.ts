@@ -46,17 +46,17 @@ export function pageDictType(params: {
   name?: string
   status?: number
 }) {
-  return request.page<DictType>({ url: '/admin-api/system/dict/page', params })
+  return request.page<DictType>({ url: '/system/dict/page', params })
 }
 
 export function saveDictType(data: DictTypeSave) {
   return data.id
-    ? request.put<void>({ url: '/admin-api/system/dict/update', data })
-    : request.post<void>({ url: '/admin-api/system/dict/create', data })
+    ? request.put<void>({ url: '/system/dict/update', data })
+    : request.post<void>({ url: '/system/dict/create', data })
 }
 
 export function deleteDictType(id: number) {
-  return request.delete<void>({ url: '/admin-api/system/dict/delete', data: [id] })
+  return request.delete<void>({ url: '/system/dict/delete', data: [id] })
 }
 
 /**
@@ -71,7 +71,7 @@ export function pageDictItem(params: {
   status?: number
 }) {
   return request.page<DictItem>({
-    url: '/admin-api/system/dict/item/page',
+    url: '/system/dict/item/page',
     params: {
       dictType: params.type,
       label: params.label,
@@ -84,12 +84,12 @@ export function pageDictItem(params: {
 
 export function saveDictItem(data: DictItemSave) {
   return data.id
-    ? request.put<void>({ url: '/admin-api/system/dict/item/update', data })
-    : request.post<void>({ url: '/admin-api/system/dict/item/create', data })
+    ? request.put<void>({ url: '/system/dict/item/update', data })
+    : request.post<void>({ url: '/system/dict/item/create', data })
 }
 
 export function deleteDictItem(id: number) {
-  return request.delete<void>({ url: '/admin-api/system/dict/item/delete', data: [id] })
+  return request.delete<void>({ url: '/system/dict/item/delete', data: [id] })
 }
 
 /**
@@ -98,5 +98,5 @@ export function deleteDictItem(id: number) {
  * 避免普通用户没有 system:dict:list 权限时 403。
  */
 export function listDictItem(dictType: string) {
-  return request.get<DictItem[]>({ url: `/admin-api/system/dict/type/${encodeURIComponent(dictType)}` })
+  return request.get<DictItem[]>({ url: `/system/dict/type/${encodeURIComponent(dictType)}` })
 }

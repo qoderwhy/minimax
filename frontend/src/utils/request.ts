@@ -12,7 +12,7 @@ import { useUserStore } from '@/stores/user'
 const SUCCESS_CODE = 200
 
 const request: AxiosInstance = axios.create({
-  baseURL: '/',
+  baseURL: (import.meta.env as any).VITE_API_BASE_URL || '/',
   timeout: 30000
 })
 

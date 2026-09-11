@@ -43,15 +43,15 @@ export interface ChangePassword {
 
 /** 获取个人资料 */
 export function getProfile() {
-  return request.get<ProfileVO>({ url: '/admin-api/system/user/profile' })
+  return request.get<ProfileVO>({ url: '/system/user/profile' })
 }
 
 /** 更新个人资料 */
 export function updateProfile(data: ProfileUpdate) {
-  return request.put<void>({ url: '/admin-api/system/user/profile', data })
+  return request.put<void>({ url: '/system/user/profile', data })
 }
 
 /** 修改密码（本人） */
 export function changePassword(data: ChangePassword) {
-  return request.put<void>({ url: '/admin-api/system/user/profile/password', data })
+  return request.put<void>({ url: '/system/user/profile/password', data })
 }

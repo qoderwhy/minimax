@@ -19,17 +19,17 @@ export interface PostSave {
 }
 
 export function pagePost(params: { pageNum?: number; pageSize?: number; name?: string; code?: string; status?: number }) {
-  return request.page<PostItem>({ url: '/admin-api/system/post/page', params })
+  return request.page<PostItem>({ url: '/system/post/page', params })
 }
 
 export function listPost() {
-  return request.get<PostItem[]>({ url: '/admin-api/system/post/list' })
+  return request.get<PostItem[]>({ url: '/system/post/list' })
 }
 
 export function savePost(data: PostSave) {
-  return data.id ? request.put<void>({ url: '/admin-api/system/post/update', data }) : request.post<void>({ url: '/admin-api/system/post/create', data })
+  return data.id ? request.put<void>({ url: '/system/post/update', data }) : request.post<void>({ url: '/system/post/create', data })
 }
 
 export function deletePost(id: number) {
-  return request.delete<void>({ url: '/admin-api/system/post/delete', data: [id] })
+  return request.delete<void>({ url: '/system/post/delete', data: [id] })
 }

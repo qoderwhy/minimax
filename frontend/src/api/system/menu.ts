@@ -32,15 +32,15 @@ export interface MenuSave {
 }
 
 export function treeMenu() {
-  return request.get<MenuItem[]>({ url: '/admin-api/system/menu/tree' })
+  return request.get<MenuItem[]>({ url: '/system/menu/tree' })
 }
 
 export function saveMenu(data: MenuSave) {
   return data.id
-    ? request.put<void>({ url: '/admin-api/system/menu/update', data })
-    : request.post<void>({ url: '/admin-api/system/menu/create', data })
+    ? request.put<void>({ url: '/system/menu/update', data })
+    : request.post<void>({ url: '/system/menu/create', data })
 }
 
 export function deleteMenu(id: number) {
-  return request.delete<void>({ url: '/admin-api/system/menu/delete', data: [id] })
+  return request.delete<void>({ url: '/system/menu/delete', data: [id] })
 }
