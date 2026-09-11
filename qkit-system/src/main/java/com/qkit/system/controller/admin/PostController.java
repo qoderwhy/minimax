@@ -20,7 +20,7 @@ import java.util.List;
 
 @Tag(name = "岗位管理")
 @RestController
-@RequestMapping("/admin-api/system/post")
+@RequestMapping("/system/post")
 @RequiredArgsConstructor
 public class PostController {
 

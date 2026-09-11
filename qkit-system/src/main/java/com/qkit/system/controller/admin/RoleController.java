@@ -20,7 +20,7 @@ import java.util.List;
 
 @Tag(name = "角色管理")
 @RestController
-@RequestMapping("/admin-api/system/role")
+@RequestMapping("/system/role")
 @RequiredArgsConstructor
 public class RoleController {
 

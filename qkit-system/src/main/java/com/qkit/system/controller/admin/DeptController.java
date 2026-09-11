@@ -20,7 +20,7 @@ import java.util.List;
 
 @Tag(name = "部门管理")
 @RestController
-@RequestMapping("/admin-api/system/dept")
+@RequestMapping("/system/dept")
 @RequiredArgsConstructor
 public class DeptController {
 

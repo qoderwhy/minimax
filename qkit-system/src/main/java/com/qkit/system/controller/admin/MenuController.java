@@ -20,7 +20,7 @@ import java.util.List;
 
 @Tag(name = "菜单管理")
 @RestController
-@RequestMapping("/admin-api/system/menu")
+@RequestMapping("/system/menu")
 @RequiredArgsConstructor
 public class MenuController {
 

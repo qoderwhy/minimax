@@ -29,7 +29,7 @@ import java.util.List;
 
 @Tag(name = "用户管理")
 @RestController
-@RequestMapping("/admin-api/system/user")
+@RequestMapping("/system/user")
 @RequiredArgsConstructor
 public class UserController {
 

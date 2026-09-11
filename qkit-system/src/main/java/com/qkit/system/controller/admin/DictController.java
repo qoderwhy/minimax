@@ -24,7 +24,7 @@ import java.util.List;
 
 @Tag(name = "字典管理")
 @RestController
-@RequestMapping("/admin-api/system/dict")
+@RequestMapping("/system/dict")
 @RequiredArgsConstructor
 public class DictController {
 

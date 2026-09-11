@@ -16,7 +16,7 @@ import java.util.List;
 
 @Tag(name = "登录日志")
 @RestController
-@RequestMapping("/admin-api/system/login-log")
+@RequestMapping("/system/login-log")
 @RequiredArgsConstructor
 public class LoginLogController {
 

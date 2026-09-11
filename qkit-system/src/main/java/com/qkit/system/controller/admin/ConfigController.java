@@ -20,7 +20,7 @@ import java.util.List;
 
 @Tag(name = "参数配置管理")
 @RestController
-@RequestMapping("/admin-api/system/config")
+@RequestMapping("/system/config")
 @RequiredArgsConstructor
 public class ConfigController {
 
