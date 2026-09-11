@@ -2,7 +2,7 @@ target/
 .idea/
 .vscode/
 ./codebuddy/
-./wodebuddy/
+./workbuddy/
 *.iml
 *.iws
 *.ipr
