@@ -29,7 +29,7 @@ echo "[3/3] 等待服务就绪..."
 sleep 8
 echo "  -> 后端: http://localhost:8080/admin-api"
 echo "  -> 前端: http://localhost:5173"
-echo "  -> 文档: http://localhost:8080/doc.html"
+echo "  -> 文档: http://localhost:8080/admin-api/doc.html"
 echo ""
 echo "按 Ctrl+C 停止所有服务"
 

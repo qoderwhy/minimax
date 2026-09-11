@@ -336,8 +336,9 @@ public class WebConfig implements WebMvcConfigurer {
 - 全部 Controller 加 `@Tag(name = "用户管理")`
 - 全部方法加 `@Operation(summary = "分页查询用户")`
 - 启用 springdoc-openapi + knife4j
-- 访问：`http://localhost:8080/doc.html`（Knife4j UI）
+- 访问：`http://localhost:8080/admin-api/doc.html`（Knife4j UI）
+- springdoc 的 `api-docs` / `swagger-ui` 路径**保持相对**（如 `/v3/api-docs`），springdoc 会自动叠加 `server.servlet.context-path`；**切勿**写成 `/admin-api/v3/api-docs`，否则文档地址会双前缀。
 
 ## 12. OpenAPI 导出
 
-`qkit-admin` 提供 `/v3/api-docs` 端点，前端 codegen 工具可基于此自动生成 TS 类型。
+`qkit-admin` 在 context-path `/admin-api` 下提供 `/v3/api-docs` 端点（完整地址 `http://localhost:8080/admin-api/v3/api-docs`），前端 codegen 工具可基于此自动生成 TS 类型。

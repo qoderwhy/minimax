@@ -66,7 +66,7 @@ async function onSubmit() {
 <template>
   <div class="login-container">
     <div class="login-box">
-      <h2 class="title">qkit 后台管理系统</h2>
+      <h2 class="title">后台管理系统</h2>
       <el-form ref="formRef" :model="form" :rules="rules" @submit.prevent="onSubmit">
         <el-form-item prop="username">
           <el-input v-model="form.username" placeholder="用户名" prefix-icon="User" />

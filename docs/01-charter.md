@@ -110,7 +110,7 @@ qkit/
 
 ### 6.3 质量层面
 
-- [ ] 后端 Controller 全部带 `@Operation`（Knife4j 文档可访问 `/doc.html`）
+- [ ] 后端 Controller 全部带 `@Operation`（Knife4j 文档可访问 `/admin-api/doc.html`）
 - [ ] 全部 Service 方法带 `@Transactional` 边界（只读除外）
 - [ ] 全局异常统一封装为 `R.fail(code, msg)`，前端按 code 弹 ElMessage
 - [ ] 跨域配置正确，前端 dev 跨域 8080 成功

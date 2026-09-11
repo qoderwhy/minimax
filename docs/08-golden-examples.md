@@ -503,7 +503,7 @@ import java.util.List;
 
 @Tag(name = "用户管理")
 @RestController
-@RequestMapping("/admin-api/system/user")
+@RequestMapping("/system/user")   // 统一前缀 /admin-api 由 server.servlet.context-path 提供，此处不重复
 @RequiredArgsConstructor
 public class UserController {
 
@@ -1009,7 +1009,7 @@ public class DeptServiceImpl implements DeptService {
 ```java
 @Tag(name = "部门管理")
 @RestController
-@RequestMapping("/admin-api/system/dept")
+@RequestMapping("/system/dept")   // 统一前缀 /admin-api 由 server.servlet.context-path 提供，此处不重复
 @RequiredArgsConstructor
 public class DeptController {
 

@@ -102,7 +102,8 @@ spring:
 server:
   port: 8080
   servlet:
-    context-path: /
+    # 统一前缀提升到 context-path：Controller 内不再重复写 /admin-api，接口路径保持无前缀
+    context-path: /admin-api
 ```
 
 ### 3.2 application-dev.yml
@@ -305,7 +306,7 @@ HTTPS：用 certbot 申请 Let's Encrypt 证书，配置 443。
 ### 6.1 健康检查
 
 ```bash
-curl http://localhost:8080/actuator/health
+curl http://localhost:8080/admin-api/actuator/health
 ```
 
 > `application.yml` 仅暴露 `health,info,prometheus`；**默认不返回** `components` 细节（prod 显式 `show-details: never`）。

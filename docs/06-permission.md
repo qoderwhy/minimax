@@ -99,7 +99,7 @@ public class StpInterfaceImpl implements StpInterface {
 // 推荐做法：不在类级别加 @SaCheckPermission，而是在每个方法上加 @SaCheckPermission("xxx:xxx:<action>")。
 // 原因：权限码字典表的粒度是 module:resource:action 三段，类级别只能表达 module:resource 两段，无法表达 action 维度（page/list/create/update/delete ...），会与字典表粒度不匹配。
 @RestController
-@RequestMapping("/admin-api/system/user")
+@RequestMapping("/system/user")   // 统一前缀由 server.servlet.context-path=/admin-api 提供，此处不再重复
 public class UserController {
 
     // 方法级别

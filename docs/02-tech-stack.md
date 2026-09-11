@@ -24,7 +24,7 @@
 | 图形验证码 | easy-captcha | **1.6.2** | 登录验证码生成（框架层 `captcha/`） |
 | 导入导出 | easyexcel | **3.3.4** | Excel 导出（如用户导出）；`poi` **5.2.5** 为其传递依赖 |
 | 数据库版本化 | Flyway | **9.22.3**（避开 10.x 二次开源 License 变更；与 Boot 3.2 默认管理版本解耦） | `db/migration/V*.sql`；**dev 默认关闭**（`spring.flyway.enabled=false`），prod 开启 |
-| 健康检查 | spring-boot-starter-actuator | 随 Boot | 提供 `/actuator/health`（10 §6.1）；**不**暴露全部端点，需显式 `management.endpoints.web.exposure.include` |
+| 健康检查 | spring-boot-starter-actuator | 随 Boot | 提供 `/admin-api/actuator/health`（含 context-path 前缀，10 §6.1）；**不**暴露全部端点，需显式 `management.endpoints.web.exposure.include` |
 | 监控指标（规划） | micrometer-registry-prometheus | **待引入** | 当前 pom **未**引入依赖；`application.yml` 已将 `prometheus` 列入 `exposure.include`，补依赖后即可用（10 §6.3） |
 | 测试 | JUnit 5 + Mockito | 5.10+ / 5.x | 不引 Testcontainers（DB 用本地 docker） |
 

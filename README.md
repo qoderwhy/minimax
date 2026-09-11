@@ -103,7 +103,7 @@ cd qkit-admin
 mvn spring-boot:run
 ```
 
-启动后访问 `http://localhost:8080/doc.html` 查看 API 文档。
+启动后访问 `http://localhost:8080/admin-api/doc.html` 查看 API 文档。
 
 ### 4. 启动前端
 

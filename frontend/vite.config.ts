@@ -35,10 +35,10 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       // 开发代理：路径前缀 -> 对应后端（目标取 PROXY_* 变量，缺省本地端口）。
       // 新增服务：.env.development 加 PROXY_XXX，下面加 '/xxx' 条目即可。
-      // 仅当请求用相对 baseURL 时走代理；当前 admin-api 用绝对地址直连(CORS)，
-      // 想走代理则把 .env.development 的 VITE_API_BASE_URL 改为 '/admin-api'。
+      // 前端 VITE_API_BASE_URL 为相对 '/admin-api'（不含主机名），请求经此代理转发到后端，
+      // 与后端 server.servlet.context-path 对齐，天然同源、规避 CORS。
       proxy: {
-        // 主后台 qkit-admin（context-path=/admin-api）
+        // 主后台 qkit-admin（context-path=/admin-api）：不做 rewrite，保留 /admin-api 前缀
         '/admin-api': {
           target: proxyTarget('PROXY_ADMIN', 'http://localhost:8080'),
           changeOrigin: true

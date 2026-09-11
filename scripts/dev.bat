@@ -20,7 +20,7 @@ echo [3/3] 等待服务就绪...
 timeout /t 8 /nobreak > nul
 echo   -^> 后端: http://localhost:8080/admin-api
 echo   -^> 前端: http://localhost:5173
-echo   -^> 文档: http://localhost:8080/doc.html
+echo   -^> 文档: http://localhost:8080/admin-api/doc.html
 echo.
 echo 关闭对应 cmd 窗口即可停止服务
 
