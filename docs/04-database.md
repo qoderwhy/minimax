@@ -336,7 +336,7 @@ sys_config (系统参数)      独立，无表间关系
 | 系统管理 | 操作日志 (`system:oper-log:page`) | `system:oper-log:delete` / `system:oper-log:clean` |
 | 系统管理 | 登录日志 (`system:login-log:page`) | `system:login-log:delete` / `system:login-log:clean` |
 | 系统管理 | 参数设置 (`system:config:page` + `system:config:list`) | `system:config:create` / `system:config:update` / `system:config:delete` |
-| 系统监控 | 预留（`type=M` 占位，暂不放子菜单） | — |
+| 系统监控 | 服务监控 (`monitor:server:page`) | — |
 | 工具 | 预留（`type=M` 占位，暂不放子菜单） | — |
 
 > 上表为**速查清单**。任何新增 / 修改权限码，**必须**同时更新 `06 §10.1` 字典表（唯一权威事实源），并通过增量 Flyway 迁移（`V1.0.2__*.sql` 起）落地，**不得**改动已应用的 `V1.0.0__init.sql` 或 `V1.0.1__seed.sql`。

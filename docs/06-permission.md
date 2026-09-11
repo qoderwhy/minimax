@@ -431,6 +431,7 @@ public void onLoginSuccess(String username) {
 | `system:config:create` | 参数配置 | 新增 | `ConfigController.create` | 「新增参数」按钮 |
 | `system:config:update` | 参数配置 | 更新 | `ConfigController.update` | 「编辑参数」按钮 |
 | `system:config:delete` | 参数配置 | 删除 | `ConfigController.delete` | 「删除参数」按钮 |
+| `monitor:server:page` | 系统监控 | 服务器信息 | `MonitorController.getServerInfo` | 服务监控页面 |
 
 ### 10.2 新增权限码流程
 

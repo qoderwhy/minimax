@@ -38,7 +38,7 @@ const activeMenu = computed(() => route.path)
     </div>
 
     <template v-for="m in menus" :key="m.path">
-      <el-sub-menu v-if="m.children && m.children.length > 1" :index="m.path">
+      <el-sub-menu v-if="m.children && m.children.length > 0" :index="m.path">
         <template #title>
           <el-icon v-if="m.meta?.icon"><component :is="m.meta.icon" /></el-icon>
           <span>{{ m.meta?.title }}</span>
@@ -53,15 +53,7 @@ const activeMenu = computed(() => route.path)
         </el-menu-item>
       </el-sub-menu>
 
-      <el-menu-item
-        v-else-if="m.children && m.children.length === 1"
-        :index="resolvePath(m, m.children[0])"
-      >
-        <el-icon v-if="m.meta?.icon"><component :is="m.meta.icon" /></el-icon>
-        <span>{{ m.children[0].meta?.title || m.meta?.title }}</span>
-      </el-menu-item>
-
-      <el-menu-item v-else-if="!m.children || m.children.length === 0" :index="m.path">
+      <el-menu-item v-else :index="m.path">
         <el-icon v-if="m.meta?.icon"><component :is="m.meta.icon" /></el-icon>
         <span>{{ m.meta?.title }}</span>
       </el-menu-item>
