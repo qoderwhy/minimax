@@ -1,6 +1,7 @@
 target/
 .idea/
 .vscode/
+./codebuddy/
 *.iml
 *.iws
 *.ipr
