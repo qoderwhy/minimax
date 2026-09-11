@@ -29,7 +29,7 @@
         <sa-token.version>1.39.0</sa-token.version>
         <hutool.version>5.8.32</hutool.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
-        <knife4j.version>4.5.0</knife4j.version>
+        <knife4j.version>4.3.0</knife4j.version>
         <springdoc.version>2.5.0</springdoc.version>
         <flyway.version>9.22.3</flyway.version>
         <easy-captcha.version>1.6.2</easy-captcha.version>
